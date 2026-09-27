@@ -1,0 +1,9 @@
+{
+  "status": "complete",
+  "method": "dummy-tcp-stream-reassembly",
+  "sourceFiles": [
+    "mail-lab-1790517859989-482d9c33-46ed-40ba-b570-6775ee46c6cb-part-01.pcap"
+  ],
+  "sessionsReconstructed": 18,
+  "message": "Generated lab captures were grouped and reconstructed before traffic analysis."
+}

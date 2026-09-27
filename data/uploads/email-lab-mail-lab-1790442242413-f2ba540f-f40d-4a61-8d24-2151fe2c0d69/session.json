@@ -1,0 +1,51 @@
+{
+  "id": "mail-lab-1790442242413-f2ba540f-f40d-4a61-8d24-2151fe2c0d69",
+  "emailSession": "Email lab · mail-lab-1790442242413-f2ba540f-f40d-4a61-8d24-2151fe2c0d69",
+  "files": [
+    {
+      "originalName": "mail-lab-1790442242413-f2ba540f-f40d-4a61-8d24-2151fe2c0d69-part-01.pcap",
+      "size": 4730923
+    },
+    {
+      "originalName": "mail-lab-1790442242413-f2ba540f-f40d-4a61-8d24-2151fe2c0d69-part-02.pcap",
+      "size": 4730923
+    },
+    {
+      "originalName": "mail-lab-1790442242413-f2ba540f-f40d-4a61-8d24-2151fe2c0d69-part-03.pcap",
+      "size": 4730923
+    },
+    {
+      "originalName": "mail-lab-1790442242413-f2ba540f-f40d-4a61-8d24-2151fe2c0d69-part-04.pcap",
+      "size": 4730923
+    },
+    {
+      "originalName": "mail-lab-1790442242413-f2ba540f-f40d-4a61-8d24-2151fe2c0d69-part-05.pcap",
+      "size": 4730923
+    },
+    {
+      "originalName": "mail-lab-1790442242413-f2ba540f-f40d-4a61-8d24-2151fe2c0d69-part-06.pcap",
+      "size": 4730923
+    }
+  ],
+  "folder": "data/uploads/email-lab-mail-lab-1790442242413-f2ba540f-f40d-4a61-8d24-2151fe2c0d69",
+  "reconstruction": {
+    "status": "complete",
+    "method": "dummy-tcp-stream-reassembly",
+    "sourceFiles": [
+      "mail-lab-1790442242413-f2ba540f-f40d-4a61-8d24-2151fe2c0d69-part-01.pcap",
+      "mail-lab-1790442242413-f2ba540f-f40d-4a61-8d24-2151fe2c0d69-part-02.pcap",
+      "mail-lab-1790442242413-f2ba540f-f40d-4a61-8d24-2151fe2c0d69-part-03.pcap",
+      "mail-lab-1790442242413-f2ba540f-f40d-4a61-8d24-2151fe2c0d69-part-04.pcap",
+      "mail-lab-1790442242413-f2ba540f-f40d-4a61-8d24-2151fe2c0d69-part-05.pcap",
+      "mail-lab-1790442242413-f2ba540f-f40d-4a61-8d24-2151fe2c0d69-part-06.pcap"
+    ],
+    "sessionsReconstructed": 108,
+    "message": "Generated lab captures were grouped and reconstructed before traffic analysis."
+  },
+  "attachments": [
+    {
+      "originalName": "Screen Recording 2026-09-13 223533.mp4",
+      "size": 28385538
+    }
+  ]
+}

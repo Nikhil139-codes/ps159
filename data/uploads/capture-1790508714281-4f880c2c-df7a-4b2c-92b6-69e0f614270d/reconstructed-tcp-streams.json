@@ -1,0 +1,14 @@
+{
+  "status": "complete",
+  "method": "dummy-tcp-stream-reassembly",
+  "sourceFiles": [
+    "run_006.pcap",
+    "run_007.pcap",
+    "run_008.pcap",
+    "run_009.pcap",
+    "run_010.pcap",
+    "run_011.pcap"
+  ],
+  "sessionsReconstructed": 108,
+  "message": "All PCAP files were merged before protocol and TLS analysis."
+}

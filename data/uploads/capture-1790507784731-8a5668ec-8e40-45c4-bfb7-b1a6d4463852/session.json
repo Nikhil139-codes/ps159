@@ -1,0 +1,32 @@
+{
+  "id": "1790507784731-8a5668ec-8e40-45c4-bfb7-b1a6d4463852",
+  "files": [
+    {
+      "originalName": "run_017.pcap",
+      "storedName": "run_017.pcap",
+      "size": 1194
+    },
+    {
+      "originalName": "run_016.pcap",
+      "storedName": "run_016.pcap",
+      "size": 1194
+    },
+    {
+      "originalName": "run_015.pcap",
+      "storedName": "run_015.pcap",
+      "size": 1194
+    }
+  ],
+  "folder": "data/uploads/capture-1790507784731-8a5668ec-8e40-45c4-bfb7-b1a6d4463852",
+  "reconstruction": {
+    "status": "complete",
+    "method": "dummy-tcp-stream-reassembly",
+    "sourceFiles": [
+      "run_017.pcap",
+      "run_016.pcap",
+      "run_015.pcap"
+    ],
+    "sessionsReconstructed": 54,
+    "message": "All PCAP files were merged before protocol and TLS analysis."
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "id": "1790415921266-e40e6311-b86b-4dae-83da-83948f997c4d",
+  "emailSession": "temp",
+  "files": [
+    {
+      "originalName": "run_017.pcap",
+      "storedName": "run_017.pcap",
+      "size": 1194
+    },
+    {
+      "originalName": "run_016.pcap",
+      "storedName": "run_016.pcap",
+      "size": 1194
+    }
+  ],
+  "reconstruction": {
+    "status": "complete",
+    "method": "dummy-tcp-stream-reassembly",
+    "sourceFiles": [
+      "run_017.pcap",
+      "run_016.pcap"
+    ],
+    "sessionsReconstructed": 36,
+    "message": "All PCAP files in this email session were merged before protocol and TLS analysis."
+  }
+}

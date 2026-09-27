@@ -1,0 +1,36 @@
+# SecureMailScope — Forensic PCAP Export
+# Run ID: run_718
+# Generated: 2026-09-27T14:19:28.057Z
+# Protocol: SMTP | TLS: STARTTLS (TLS 1.3)
+# Server: smtp.lab.local:587
+# Certificate: Valid | Auth: Enabled
+# ──── Packet Summary ──────────────────────────────
+# Frame 1: 74 bytes on wire, TCP SYN
+#   Source: 172.30.0.2:58121  →  Destination: 172.30.0.3:587
+#   Flags: 0x002 (SYN)  Seq=0  Win=65535
+# Frame 2: 74 bytes on wire, TCP SYN-ACK
+#   Source: 172.30.0.3:587  →  Destination: 172.30.0.2:45226
+#   Flags: 0x012 (SYN, ACK)  Seq=0  Ack=1  Win=65535
+# Frame 3: 66 bytes on wire, TCP ACK
+#   Flags: 0x010 (ACK)  Seq=1  Ack=1  Win=65535
+# Frame 4: SMTP Banner
+#   220 mail-lab.local ESMTP Postfix
+# Frame 5: EHLO
+#   EHLO client.lab.local
+# Frame 6: EHLO Response
+#   250-mail-lab.local
+#   250-STARTTLS
+#   250-AUTH LOGIN PLAIN
+#   250 OK
+# Frame 7: STARTTLS
+#   STARTTLS
+# Frame 8: TLS Handshake — ClientHello
+#   TLS 1.3 ClientHello
+#   Cipher Suites: TLS_AES_256_GCM_SHA384, TLS_CHACHA20_POLY1305_SHA256
+# Frame 9: TLS Handshake — ServerHello
+#   TLS 1.3 ServerHello
+#   Selected Cipher: TLS_AES_256_GCM_SHA384
+# ──── End of Summary ──────────────────────────────
+# Total packets captured: 215
+# Capture duration: 3.86 seconds
+# File size: 39 KB

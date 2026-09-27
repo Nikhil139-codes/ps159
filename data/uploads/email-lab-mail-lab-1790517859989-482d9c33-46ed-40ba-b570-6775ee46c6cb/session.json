@@ -1,0 +1,41 @@
+{
+  "id": "mail-lab-1790517859989-482d9c33-46ed-40ba-b570-6775ee46c6cb",
+  "files": [
+    {
+      "originalName": "mail-lab-1790517859989-482d9c33-46ed-40ba-b570-6775ee46c6cb-part-01.pcap",
+      "size": 425869
+    }
+  ],
+  "folder": "data/uploads/email-lab-mail-lab-1790517859989-482d9c33-46ed-40ba-b570-6775ee46c6cb",
+  "reconstruction": {
+    "status": "complete",
+    "method": "dummy-tcp-stream-reassembly",
+    "sourceFiles": [
+      "mail-lab-1790517859989-482d9c33-46ed-40ba-b570-6775ee46c6cb-part-01.pcap"
+    ],
+    "sessionsReconstructed": 18,
+    "message": "Generated lab captures were grouped and reconstructed before traffic analysis."
+  },
+  "attachments": [
+    {
+      "originalName": "backend fs.png",
+      "size": 32006
+    },
+    {
+      "originalName": "frontend fs.png",
+      "size": 23544
+    },
+    {
+      "originalName": "Screenshot (1).png",
+      "size": 202255
+    },
+    {
+      "originalName": "Screenshot 2024-12-09 020528.png",
+      "size": 87085
+    },
+    {
+      "originalName": "Screenshot 2025-06-20 153156.png",
+      "size": 80979
+    }
+  ]
+}

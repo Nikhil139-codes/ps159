@@ -1,0 +1,56 @@
+{
+  "id": "1790508136240-84f592a8-66b5-4065-9860-42c3e34321ba",
+  "files": [
+    {
+      "originalName": "run_003.pcap",
+      "storedName": "run_003.pcap",
+      "size": 1478
+    },
+    {
+      "originalName": "run_004.pcap",
+      "storedName": "run_004.pcap",
+      "size": 49436
+    },
+    {
+      "originalName": "run_005.pcap",
+      "storedName": "run_005.pcap",
+      "size": 49552
+    },
+    {
+      "originalName": "run_006.pcap",
+      "storedName": "run_006.pcap",
+      "size": 49552
+    },
+    {
+      "originalName": "run_007.pcap",
+      "storedName": "run_007.pcap",
+      "size": 49436
+    },
+    {
+      "originalName": "run_008.pcap",
+      "storedName": "run_008.pcap",
+      "size": 49784
+    },
+    {
+      "originalName": "run_009.pcap",
+      "storedName": "run_009.pcap",
+      "size": 1194
+    }
+  ],
+  "folder": "data/uploads/capture-1790508136240-84f592a8-66b5-4065-9860-42c3e34321ba",
+  "reconstruction": {
+    "status": "complete",
+    "method": "dummy-tcp-stream-reassembly",
+    "sourceFiles": [
+      "run_003.pcap",
+      "run_004.pcap",
+      "run_005.pcap",
+      "run_006.pcap",
+      "run_007.pcap",
+      "run_008.pcap",
+      "run_009.pcap"
+    ],
+    "sessionsReconstructed": 126,
+    "message": "All PCAP files were merged before protocol and TLS analysis."
+  }
+}

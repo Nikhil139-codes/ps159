@@ -1,0 +1,62 @@
+{
+  "id": "1790517772692-70e7e0f5-cb9c-4f6d-84c5-c17c47023670",
+  "files": [
+    {
+      "originalName": "run_028.pcap",
+      "storedName": "run_028.pcap",
+      "size": 319464
+    },
+    {
+      "originalName": "config_pcap_file (1).pcap",
+      "storedName": "config_pcap_file__1_.pcap",
+      "size": 50908
+    },
+    {
+      "originalName": "config_pcap_file.pcap",
+      "storedName": "config_pcap_file.pcap",
+      "size": 50908
+    },
+    {
+      "originalName": "run_025.pcap",
+      "storedName": "run_025.pcap",
+      "size": 317462
+    },
+    {
+      "originalName": "run_022_part_000001.pcap",
+      "storedName": "run_022_part_000001.pcap",
+      "size": 7324
+    },
+    {
+      "originalName": "run_014.pcap",
+      "storedName": "run_014.pcap",
+      "size": 50908
+    },
+    {
+      "originalName": "run_010 (1).pcap",
+      "storedName": "run_010__1_.pcap",
+      "size": 49320
+    },
+    {
+      "originalName": "run_010.pcap",
+      "storedName": "run_010.pcap",
+      "size": 49320
+    }
+  ],
+  "folder": "data/uploads/capture-1790517772692-70e7e0f5-cb9c-4f6d-84c5-c17c47023670",
+  "reconstruction": {
+    "status": "complete",
+    "method": "dummy-tcp-stream-reassembly",
+    "sourceFiles": [
+      "run_028.pcap",
+      "config_pcap_file__1_.pcap",
+      "config_pcap_file.pcap",
+      "run_025.pcap",
+      "run_022_part_000001.pcap",
+      "run_014.pcap",
+      "run_010__1_.pcap",
+      "run_010.pcap"
+    ],
+    "sessionsReconstructed": 144,
+    "message": "All PCAP files were merged before protocol and TLS analysis."
+  }
+}

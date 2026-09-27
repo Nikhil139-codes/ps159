@@ -1,0 +1,20 @@
+{
+  "id": "1790519051623-34029cb6-8300-47c2-bb78-12fa09b1d0ab",
+  "files": [
+    {
+      "originalName": "run_718.pcap",
+      "storedName": "run_718.pcap",
+      "size": 1396
+    }
+  ],
+  "folder": "data/uploads/capture-1790519051623-34029cb6-8300-47c2-bb78-12fa09b1d0ab",
+  "reconstruction": {
+    "status": "complete",
+    "method": "dummy-tcp-stream-reassembly",
+    "sourceFiles": [
+      "run_718.pcap"
+    ],
+    "sessionsReconstructed": 18,
+    "message": "All PCAP files were merged before protocol and TLS analysis."
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "status": "complete",
+  "method": "dummy-tcp-stream-reassembly",
+  "sourceFiles": [
+    "run_017.pcap",
+    "run_016.pcap",
+    "run_015.pcap",
+    "run_014.pcap"
+  ],
+  "sessionsReconstructed": 72,
+  "message": "All PCAP files in this email session were merged before protocol and TLS analysis."
+}

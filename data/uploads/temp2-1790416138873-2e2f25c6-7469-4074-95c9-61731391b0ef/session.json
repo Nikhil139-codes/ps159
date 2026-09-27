@@ -1,0 +1,39 @@
+{
+  "id": "1790416138873-2e2f25c6-7469-4074-95c9-61731391b0ef",
+  "emailSession": "temp2",
+  "files": [
+    {
+      "originalName": "run_017.pcap",
+      "storedName": "run_017.pcap",
+      "size": 1194
+    },
+    {
+      "originalName": "run_016.pcap",
+      "storedName": "run_016.pcap",
+      "size": 1194
+    },
+    {
+      "originalName": "run_015.pcap",
+      "storedName": "run_015.pcap",
+      "size": 1194
+    },
+    {
+      "originalName": "run_014.pcap",
+      "storedName": "run_014.pcap",
+      "size": 1194
+    }
+  ],
+  "folder": "data/uploads/temp2-1790416138873-2e2f25c6-7469-4074-95c9-61731391b0ef",
+  "reconstruction": {
+    "status": "complete",
+    "method": "dummy-tcp-stream-reassembly",
+    "sourceFiles": [
+      "run_017.pcap",
+      "run_016.pcap",
+      "run_015.pcap",
+      "run_014.pcap"
+    ],
+    "sessionsReconstructed": 72,
+    "message": "All PCAP files in this email session were merged before protocol and TLS analysis."
+  }
+}

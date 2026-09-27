@@ -1,0 +1,20 @@
+{
+  "id": "mail-lab-1790518747788-c8f8fb6d-da54-4fd0-b853-b37333f6fb5c",
+  "files": [
+    {
+      "originalName": "mail-lab-1790518747788-c8f8fb6d-da54-4fd0-b853-b37333f6fb5c-part-01.pcap",
+      "size": 1024
+    }
+  ],
+  "folder": "data/uploads/email-lab-mail-lab-1790518747788-c8f8fb6d-da54-4fd0-b853-b37333f6fb5c",
+  "reconstruction": {
+    "status": "complete",
+    "method": "dummy-tcp-stream-reassembly",
+    "sourceFiles": [
+      "mail-lab-1790518747788-c8f8fb6d-da54-4fd0-b853-b37333f6fb5c-part-01.pcap"
+    ],
+    "sessionsReconstructed": 18,
+    "message": "Generated lab captures were grouped and reconstructed before traffic analysis."
+  },
+  "attachments": []
+}
