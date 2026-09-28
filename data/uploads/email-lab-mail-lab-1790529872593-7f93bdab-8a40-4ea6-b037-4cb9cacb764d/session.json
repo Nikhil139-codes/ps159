@@ -1,0 +1,248 @@
+{
+  "id": "mail-lab-1790529872593-7f93bdab-8a40-4ea6-b037-4cb9cacb764d",
+  "files": [
+    {
+      "originalName": "mail-lab-1790529872593-7f93bdab-8a40-4ea6-b037-4cb9cacb764d.pcapng",
+      "storedName": "mail-lab-1790529872593-7f93bdab-8a40-4ea6-b037-4cb9cacb764d.pcapng",
+      "size": 3460
+    }
+  ],
+  "folder": "data/uploads/email-lab-mail-lab-1790529872593-7f93bdab-8a40-4ea6-b037-4cb9cacb764d",
+  "reconstruction": {
+    "status": "complete",
+    "method": "simulated-testbed-pcapng",
+    "sourceFiles": [
+      "mail-lab-1790529872593-7f93bdab-8a40-4ea6-b037-4cb9cacb764d.pcapng"
+    ],
+    "sessionsReconstructed": 1,
+    "message": "SecureMailScope simulated testbed PCAPNG with encrypted configuration metadata."
+  },
+  "attachments": [],
+  "source": "email-lab",
+  "analysis": {
+    "schemaVersion": "1.0",
+    "analysisTimestamp": "2026-09-27T17:24:32.598Z",
+    "session": {
+      "id": "mail-lab-1790529872593-7f93bdab-8a40-4ea6-b037-4cb9cacb764d",
+      "source": "email-lab",
+      "captureFile": "mail-lab-1790529872593-7f93bdab-8a40-4ea6-b037-4cb9cacb764d.pcapng"
+    },
+    "capture": {
+      "filename": "mail-lab-1790529872593-7f93bdab-8a40-4ea6-b037-4cb9cacb764d.pcapng",
+      "format": "PCAPNG",
+      "timestamp": "2026-09-27T17:24:32.598Z",
+      "packetCount": 16,
+      "durationSeconds": 1,
+      "sourceIp": "172.30.0.2",
+      "destinationIp": "172.30.0.3",
+      "sourcePort": 50000,
+      "destinationPort": 995,
+      "hasSecureMailScopeMetadata": true,
+      "metadataIntegrity": "valid"
+    },
+    "configured": {
+      "schemaVersion": "1.0",
+      "sessionId": "mail-lab-1790529872593-7f93bdab-8a40-4ea6-b037-4cb9cacb764d",
+      "email": {
+        "protocol": "POP3",
+        "server": "smtp.lab.local",
+        "port": 995,
+        "starttls": true,
+        "starttlsMode": "enabled_required"
+      },
+      "tls": {
+        "version": "TLS1.3",
+        "cipherSuite": "TLS_AES_256_GCM_SHA384",
+        "keyExchange": "ECDHE",
+        "namedGroup": "X25519",
+        "forwardSecrecy": true
+      },
+      "certificate": {
+        "enabled": true,
+        "commonName": "mail.smtp.lab.local",
+        "issuer": "SecureMailScope Test CA",
+        "validFrom": "2025-09-27",
+        "validUntil": "2027-09-27",
+        "publicKeyAlgorithm": "RSA",
+        "publicKeyLength": 2048,
+        "signatureAlgorithm": "SHA256withRSA",
+        "chainValid": true,
+        "scenario": "valid"
+      },
+      "testScenario": "secure",
+      "metadata": {
+        "createdAt": "2026-09-27T17:24:32.593Z",
+        "generatorVersion": "1.0.0",
+        "source": "SecureMailScope Email Lab",
+        "recipient": "reviewer@lab.local",
+        "subject": "Quarterly evidence review"
+      }
+    },
+    "observed": {
+      "protocol": {
+        "detected": "POP3",
+        "port": 995,
+        "confidence": "high"
+      },
+      "starttls": {
+        "advertised": true,
+        "negotiated": true,
+        "required": true,
+        "plaintextPhaseObserved": false,
+        "encryptedPhaseObserved": true
+      },
+      "tls": {
+        "version": "TLS1.3",
+        "cipherSuite": "TLS_AES_256_GCM_SHA384",
+        "keyExchange": "ECDHE",
+        "namedGroup": "X25519",
+        "forwardSecrecy": true,
+        "handshakeComplete": true,
+        "clientHelloObserved": true,
+        "serverHelloObserved": true
+      },
+      "certificate": {
+        "present": true,
+        "commonName": "mail.smtp.lab.local",
+        "issuer": "SecureMailScope Test CA",
+        "validFrom": "2025-09-27",
+        "validUntil": "2027-09-27",
+        "expired": false,
+        "notYetValid": false,
+        "selfSigned": false,
+        "publicKeyAlgorithm": "RSA",
+        "publicKeyLength": 2048,
+        "signatureAlgorithm": "SHA256withRSA",
+        "chainValid": true
+      }
+    },
+    "configurationComparison": {
+      "tlsVersion": {
+        "configured": "TLS1.3",
+        "observed": "TLS1.3",
+        "status": "match"
+      },
+      "cipherSuite": {
+        "configured": "TLS_AES_256_GCM_SHA384",
+        "observed": "TLS_AES_256_GCM_SHA384",
+        "status": "match"
+      },
+      "keyExchange": {
+        "configured": "ECDHE",
+        "observed": "ECDHE",
+        "status": "match"
+      },
+      "namedGroup": {
+        "configured": "X25519",
+        "observed": "X25519",
+        "status": "match"
+      },
+      "forwardSecrecy": {
+        "configured": "yes",
+        "observed": "yes",
+        "status": "match"
+      },
+      "starttls": {
+        "configured": "enabled",
+        "observed": "enabled",
+        "status": "match"
+      },
+      "starttlsRequired": {
+        "configured": "required",
+        "observed": "required",
+        "status": "match"
+      },
+      "certExpired": {
+        "configured": "valid",
+        "observed": "valid",
+        "status": "match"
+      },
+      "certChainValid": {
+        "configured": "valid",
+        "observed": "valid",
+        "status": "match"
+      },
+      "certCommonName": {
+        "configured": "mail.smtp.lab.local",
+        "observed": "mail.smtp.lab.local",
+        "status": "match"
+      },
+      "publicKeyAlgorithm": {
+        "configured": "RSA",
+        "observed": "RSA",
+        "status": "match"
+      },
+      "signatureAlgorithm": {
+        "configured": "SHA256withRSA",
+        "observed": "SHA256withRSA",
+        "status": "match"
+      },
+      "overallStatus": "consistent",
+      "mismatches": []
+    },
+    "findings": [],
+    "anomalies": [],
+    "securityScore": {
+      "total": 100,
+      "grade": "A",
+      "level": "Excellent",
+      "deductions": [],
+      "breakdown": {
+        "tlsScore": 20,
+        "cipherScore": 20,
+        "keyExchangeScore": 15,
+        "certificateScore": 25,
+        "starttlsScore": 10,
+        "configConsistencyScore": 10
+      }
+    },
+    "aiAssessment": {
+      "available": false,
+      "provider": "none",
+      "executiveSummary": "AI analysis skipped for this request.",
+      "riskNarrative": "",
+      "prioritizedFindings": [],
+      "recommendations": [],
+      "anomalyExplanations": []
+    },
+    "recommendations": []
+  },
+  "labConfig": {
+    "schemaVersion": "1.0",
+    "sessionId": "mail-lab-1790529872593-7f93bdab-8a40-4ea6-b037-4cb9cacb764d",
+    "email": {
+      "protocol": "POP3",
+      "server": "smtp.lab.local",
+      "port": 995,
+      "starttls": true,
+      "starttlsMode": "enabled_required"
+    },
+    "tls": {
+      "version": "TLS1.3",
+      "cipherSuite": "TLS_AES_256_GCM_SHA384",
+      "keyExchange": "ECDHE",
+      "namedGroup": "X25519",
+      "forwardSecrecy": true
+    },
+    "certificate": {
+      "enabled": true,
+      "commonName": "mail.smtp.lab.local",
+      "issuer": "SecureMailScope Test CA",
+      "validFrom": "2025-09-27",
+      "validUntil": "2027-09-27",
+      "publicKeyAlgorithm": "RSA",
+      "publicKeyLength": 2048,
+      "signatureAlgorithm": "SHA256withRSA",
+      "chainValid": true,
+      "scenario": "valid"
+    },
+    "testScenario": "secure",
+    "metadata": {
+      "createdAt": "2026-09-27T17:24:32.593Z",
+      "generatorVersion": "1.0.0",
+      "source": "SecureMailScope Email Lab",
+      "recipient": "reviewer@lab.local",
+      "subject": "Quarterly evidence review"
+    }
+  }
+}

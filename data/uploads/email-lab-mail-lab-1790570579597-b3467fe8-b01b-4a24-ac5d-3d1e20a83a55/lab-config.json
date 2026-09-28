@@ -1,0 +1,38 @@
+{
+  "schemaVersion": "1.0",
+  "sessionId": "mail-lab-1790570579597-b3467fe8-b01b-4a24-ac5d-3d1e20a83a55",
+  "email": {
+    "protocol": "SMTP",
+    "server": "smtp.lab.local",
+    "port": 587,
+    "starttls": true,
+    "starttlsMode": "enabled_optional"
+  },
+  "tls": {
+    "version": "TLS1.2",
+    "cipherSuite": "ECDHE-RSA-AES256-GCM-SHA384",
+    "keyExchange": "ECDHE",
+    "namedGroup": "secp256r1",
+    "forwardSecrecy": true
+  },
+  "certificate": {
+    "enabled": true,
+    "commonName": "mail.smtp.lab.local",
+    "issuer": "SecureMailScope Test CA",
+    "validFrom": "2025-09-28",
+    "validUntil": "2027-09-28",
+    "publicKeyAlgorithm": "RSA",
+    "publicKeyLength": 2048,
+    "signatureAlgorithm": "SHA256withRSA",
+    "chainValid": true,
+    "scenario": "valid"
+  },
+  "testScenario": "invalid_chain",
+  "metadata": {
+    "createdAt": "2026-09-28T04:42:59.604Z",
+    "generatorVersion": "1.0.0",
+    "source": "SecureMailScope Email Lab",
+    "recipient": "reviewer@lab.local",
+    "subject": "Quarterly evidence review"
+  }
+}

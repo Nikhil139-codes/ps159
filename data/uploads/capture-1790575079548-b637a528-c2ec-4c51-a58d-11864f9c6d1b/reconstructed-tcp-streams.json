@@ -1,0 +1,11 @@
+{
+  "status": "complete",
+  "method": "pcap-upload",
+  "sourceFiles": [
+    "mail-lab-1790574773853-cb28beae-2256-445a-a39f-775d2b0eca69.pcapng",
+    "mail-lab-1790570579597-b3467fe8-b01b-4a24-ac5d-3d1e20a83a55.pcapng",
+    "mail-lab-1790529872593-7f93bdab-8a40-4ea6-b037-4cb9cacb764d.pcapng"
+  ],
+  "sessionsReconstructed": 54,
+  "message": "All PCAP files were saved for analysis."
+}

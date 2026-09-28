@@ -1,0 +1,36 @@
+{
+  "schemaVersion": "1.0",
+  "sessionId": "mail-lab-1790574543765-3e4ba0d0-419b-4def-8e37-fd894c97e917",
+  "email": {
+    "protocol": "SMTP",
+    "server": "mail.securecorp.internal",
+    "port": 587,
+    "starttls": true,
+    "starttlsMode": "enabled_required"
+  },
+  "tls": {
+    "version": "TLS1.3",
+    "cipherSuite": "TLS_AES_256_GCM_SHA384",
+    "keyExchange": "ECDHE",
+    "namedGroup": "X25519",
+    "forwardSecrecy": true
+  },
+  "certificate": {
+    "enabled": true,
+    "commonName": "mail.mail.securecorp.internal",
+    "issuer": "SecureMailScope Test CA",
+    "validFrom": "2025-09-28",
+    "validUntil": "2027-09-28",
+    "publicKeyAlgorithm": "RSA",
+    "publicKeyLength": 2048,
+    "signatureAlgorithm": "SHA256withRSA",
+    "chainValid": true,
+    "scenario": "valid"
+  },
+  "testScenario": "custom",
+  "metadata": {
+    "createdAt": "2026-09-28T05:49:03.767Z",
+    "generatorVersion": "1.0.0",
+    "source": "SecureMailScope Email Lab"
+  }
+}

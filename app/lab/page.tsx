@@ -2,6 +2,7 @@
 
 import { FormEvent, useCallback, useMemo, useRef, useState } from 'react'
 import {
+  AlertTriangle,
   CheckCircle2,
   ChevronDown,
   ChevronUp,
@@ -15,23 +16,210 @@ import {
   ShieldCheck,
   SlidersHorizontal,
   Terminal,
+  Zap,
 } from 'lucide-react'
 import { AppShell, PageHeader, StatusBadge } from '@/components/app-shell'
+import { saveAnalysisSession } from '@/lib/analysis-storage'
+
+import type {
+  EmailProtocol,
+  TlsVersion,
+  CipherSuite,
+  KeyExchangeMechanism,
+  NamedGroup,
+  CertKeyAlgorithm,
+  SignatureAlgorithm,
+  TestScenario,
+} from '@/lib/types'
+import { deriveForwardSecrecy, isTlsDeprecated } from '@/lib/types'
 
 const inputClass =
   'mt-2 w-full rounded-xl border border-[#d7e0ea] bg-white px-3 py-2.5 font-normal outline-none focus:ring-2 focus:ring-[#2d8d78] transition-all duration-200'
 const labelClass = 'text-sm font-semibold text-[#36516d]'
 
-/* ─── realistic simulated log lines ────────────────────────── */
-function generateLogLines(runId: string, config: Record<string, string>) {
+/* ─── Cipher suites per TLS version ─────────────────────────────────────── */
+const CIPHERS_TLS12: CipherSuite[] = [
+  'ECDHE-RSA-AES256-GCM-SHA384',
+  'ECDHE-RSA-AES128-GCM-SHA256',
+  'ECDHE-ECDSA-AES256-GCM-SHA384',
+  'ECDHE-ECDSA-AES128-GCM-SHA256',
+  'AES256-SHA',
+  'AES128-SHA',
+  'TLS_RSA_WITH_3DES_EDE_CBC_SHA',
+]
+
+const CIPHERS_TLS13: CipherSuite[] = [
+  'TLS_AES_256_GCM_SHA384',
+  'TLS_AES_128_GCM_SHA256',
+  'TLS_CHACHA20_POLY1305_SHA256',
+]
+
+function defaultCipher(ver: TlsVersion): CipherSuite {
+  return ver === 'TLS1.3' ? 'TLS_AES_256_GCM_SHA384' : 'ECDHE-RSA-AES256-GCM-SHA384'
+}
+
+/* ─── Preset scenarios ───────────────────────────────────────────────────── */
+type PresetKey = TestScenario
+
+interface Preset {
+  label: string
+  description: string
+  tlsVersion: TlsVersion
+  cipherSuite: CipherSuite
+  keyExchange: KeyExchangeMechanism
+  namedGroup: NamedGroup
+  tlsMode: string
+  starttlsRequired: boolean
+  certificateProfile: string
+  certKeyAlgorithm: CertKeyAlgorithm
+  certKeyLength: string
+  certSignatureAlgorithm: SignatureAlgorithm
+}
+
+const PRESETS: Record<PresetKey, Preset> = {
+  secure: {
+    label: '✅ Secure Configuration',
+    description: 'TLS 1.3 + strong cipher + PFS + valid cert',
+    tlsVersion: 'TLS1.3',
+    cipherSuite: 'TLS_AES_256_GCM_SHA384',
+    keyExchange: 'ECDHE',
+    namedGroup: 'X25519',
+    tlsMode: 'STARTTLS',
+    starttlsRequired: true,
+    certificateProfile: 'valid',
+    certKeyAlgorithm: 'RSA',
+    certKeyLength: '2048',
+    certSignatureAlgorithm: 'SHA256withRSA',
+  },
+  legacy_tls: {
+    label: '⚠️ Legacy TLS',
+    description: 'TLS 1.0 — deprecated protocol',
+    tlsVersion: 'TLS1.0',
+    cipherSuite: 'ECDHE-RSA-AES128-GCM-SHA256',
+    keyExchange: 'ECDHE',
+    namedGroup: 'secp256r1',
+    tlsMode: 'STARTTLS',
+    starttlsRequired: false,
+    certificateProfile: 'valid',
+    certKeyAlgorithm: 'RSA',
+    certKeyLength: '2048',
+    certSignatureAlgorithm: 'SHA256withRSA',
+  },
+  weak_cipher: {
+    label: '⚠️ Weak Cipher',
+    description: 'TLS 1.2 + 3DES/weak cipher',
+    tlsVersion: 'TLS1.2',
+    cipherSuite: 'TLS_RSA_WITH_3DES_EDE_CBC_SHA',
+    keyExchange: 'RSA',
+    namedGroup: 'secp256r1',
+    tlsMode: 'STARTTLS',
+    starttlsRequired: false,
+    certificateProfile: 'valid',
+    certKeyAlgorithm: 'RSA',
+    certKeyLength: '2048',
+    certSignatureAlgorithm: 'SHA256withRSA',
+  },
+  expired_cert: {
+    label: '❌ Expired Certificate',
+    description: 'Valid TLS but expired cert',
+    tlsVersion: 'TLS1.2',
+    cipherSuite: 'ECDHE-RSA-AES256-GCM-SHA384',
+    keyExchange: 'ECDHE',
+    namedGroup: 'X25519',
+    tlsMode: 'STARTTLS',
+    starttlsRequired: true,
+    certificateProfile: 'expired',
+    certKeyAlgorithm: 'RSA',
+    certKeyLength: '2048',
+    certSignatureAlgorithm: 'SHA256withRSA',
+  },
+  invalid_chain: {
+    label: '❌ Invalid Certificate Chain',
+    description: 'TLS 1.2 + broken cert chain',
+    tlsVersion: 'TLS1.2',
+    cipherSuite: 'ECDHE-RSA-AES256-GCM-SHA384',
+    keyExchange: 'ECDHE',
+    namedGroup: 'secp256r1',
+    tlsMode: 'STARTTLS',
+    starttlsRequired: false,
+    certificateProfile: 'invalid_chain',
+    certKeyAlgorithm: 'RSA',
+    certKeyLength: '2048',
+    certSignatureAlgorithm: 'SHA256withRSA',
+  },
+  no_pfs: {
+    label: '⚠️ No Forward Secrecy',
+    description: 'Static RSA key exchange — no PFS',
+    tlsVersion: 'TLS1.2',
+    cipherSuite: 'AES256-SHA',
+    keyExchange: 'RSA',
+    namedGroup: 'secp256r1',
+    tlsMode: 'STARTTLS',
+    starttlsRequired: false,
+    certificateProfile: 'valid',
+    certKeyAlgorithm: 'RSA',
+    certKeyLength: '2048',
+    certSignatureAlgorithm: 'SHA256withRSA',
+  },
+  starttls_issue: {
+    label: '⚠️ STARTTLS Issue',
+    description: 'STARTTLS advertised but not required',
+    tlsVersion: 'TLS1.2',
+    cipherSuite: 'ECDHE-RSA-AES256-GCM-SHA384',
+    keyExchange: 'ECDHE',
+    namedGroup: 'X25519',
+    tlsMode: 'STARTTLS',
+    starttlsRequired: false,
+    certificateProfile: 'valid',
+    certKeyAlgorithm: 'RSA',
+    certKeyLength: '2048',
+    certSignatureAlgorithm: 'SHA256withRSA',
+  },
+  custom: {
+    label: '🔧 Custom Configuration',
+    description: 'Manually configure all parameters',
+    tlsVersion: 'TLS1.3',
+    cipherSuite: 'TLS_AES_256_GCM_SHA384',
+    keyExchange: 'ECDHE',
+    namedGroup: 'X25519',
+    tlsMode: 'STARTTLS',
+    starttlsRequired: true,
+    certificateProfile: 'valid',
+    certKeyAlgorithm: 'RSA',
+    certKeyLength: '2048',
+    certSignatureAlgorithm: 'SHA256withRSA',
+  },
+}
+
+/* ─── Realistic log lines ────────────────────────────────────────────────── */
+function generateLogLines(
+  runId: string,
+  config: {
+    protocol: string
+    server: string
+    port: string
+    tlsMode: string
+    tlsVersion: string
+    cipherSuite: string
+    keyExchange: string
+    namedGroup: string
+    certificateProfile: string
+    authentication: string
+    recipient: string
+    forwardSecrecy: boolean
+  },
+) {
+  const pfsLabel = config.forwardSecrecy ? 'Enabled (ECDHE)' : 'Disabled (RSA static)'
   return [
     `======================================`,
     ` Running experiment: ${runId}`,
-    ` Protocol: ${config.protocol}  |  TLS: ${config.tlsMode}`,
+    ` Protocol: ${config.protocol}  |  TLS: ${config.tlsMode} (${config.tlsVersion})`,
     `======================================`,
     `[1] Initializing mail lab environment`,
     `    Mail server: ${config.server}:${config.port}`,
     `    TLS mode: ${config.tlsMode}  |  Version: ${config.tlsVersion}`,
+    `    Cipher: ${config.cipherSuite}`,
+    `    Key exchange: ${config.keyExchange} / ${config.namedGroup}  |  PFS: ${pfsLabel}`,
     `    Certificate: ${config.certificateProfile}  |  Auth: ${config.authentication}`,
     ``,
     `[2] Recreating containers`,
@@ -46,56 +234,32 @@ function generateLogLines(runId: string, config: Record<string, string>) {
     `#3 [mail-server internal] load metadata for docker.io/library/debian:trixie-slim`,
     `#3 DONE 0.0s`,
     ``,
-    `#4 [mail-server internal] load .dockerignore`,
-    `#4 transferring context: 2B done`,
-    `#4 DONE 0.0s`,
-    ``,
-    `#5 [mail-server 2/6] RUN apt-get update && apt-get install -y postfix dovecot-imapd openssl tcpdump curl procps net-tools && rm -rf /var/lib/apt/lists/*`,
+    `#5 [mail-server] apt-get install postfix dovecot-imapd openssl tcpdump`,
     `#5 CACHED`,
     ``,
-    `#6 [mail-server 5/6] COPY start.sh /start.sh`,
-    `#6 CACHED`,
-    ``,
-    `#7 [mail-server 6/6] RUN chmod +x /start.sh`,
-    `#7 CACHED`,
-    ``,
     `#8 [mail-server] exporting to image`,
-    `#8 exporting layers done`,
     `#8 naming to docker.io/library/mail-lab-server:latest done`,
     `#8 DONE 0.1s`,
     ``,
-    `#9 [mail-client] exporting to image`,
-    `#9 exporting layers done`,
-    `#9 naming to docker.io/library/mail-lab-client:latest done`,
-    `#9 DONE 0.1s`,
-    ``,
     ` Container mail-server  Creating`,
     ` Container mail-client  Creating`,
-    ` Container mail-server  Created`,
-    ` Container mail-client  Created`,
-    ` Container mail-client  Starting`,
-    ` Container mail-server  Starting`,
-    ` Container mail-client  Started`,
     ` Container mail-server  Started`,
+    ` Container mail-client  Started`,
     ``,
     `[3] Waiting for containers`,
     `    mail-server: healthy`,
     `    mail-client: healthy`,
     ``,
     `[4] Configuring network endpoints`,
-    `Client:`,
-    `2: eth0@if11: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc noqueue state UP`,
-    `    inet 172.30.0.2/24 brd 172.30.0.255 scope global eth0`,
-    `    inet 10.10.1.1/24 scope global eth0`,
-    `Server:`,
-    `2: eth0@if12: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc noqueue state UP`,
-    `    inet 172.30.0.3/24 brd 172.30.0.255 scope global eth0`,
-    `    inet 10.20.1.1/24 scope global eth0`,
+    `    Client: 172.30.0.2/24`,
+    `    Server: 172.30.0.3/24`,
     ``,
     `[5] Configuring ${config.tlsMode} (${config.tlsVersion})`,
+    `    Cipher suite: ${config.cipherSuite}`,
+    `    Key exchange: ${config.keyExchange} / Named group: ${config.namedGroup}`,
+    `    Forward Secrecy: ${pfsLabel}`,
     `    Loading certificate profile: ${config.certificateProfile}`,
-    `    Generating RSA-2048 key pair...`,
-    `    Certificate CN=mail-lab.local generated`,
+    `    Certificate CN=${config.server} generated`,
     `    TLS handshake parameters configured`,
     ``,
     `[6] Starting packet capture on port ${config.port}`,
@@ -103,15 +267,17 @@ function generateLogLines(runId: string, config: Record<string, string>) {
     ``,
     `[7] Initiating ${config.protocol} session`,
     `[SMTP] Connecting to ${config.server}:${config.port}`,
-    `[SMTP] 220 mail-lab.local ESMTP Postfix`,
+    `[SMTP] 220 ${config.server} ESMTP Postfix`,
     `[SMTP] EHLO client.lab.local`,
-    `[SMTP] 250-mail-lab.local`,
-    `[SMTP] 250-STARTTLS`,
+    `[SMTP] 250-${config.server}`,
+    config.tlsMode !== 'None' ? `[SMTP] 250-STARTTLS` : ``,
     `[SMTP] 250-AUTH LOGIN PLAIN`,
     `[SMTP] 250 OK`,
     config.tlsMode !== 'None' ? `[TLS] Starting ${config.tlsMode} negotiation` : `[SMTP] Proceeding without TLS`,
     config.tlsMode !== 'None' ? `[TLS] ${config.tlsVersion} handshake initiated` : ``,
-    config.tlsMode !== 'None' ? `[TLS] Cipher suite: TLS_AES_256_GCM_SHA384` : ``,
+    config.tlsMode !== 'None' ? `[TLS] Cipher suite negotiated: ${config.cipherSuite}` : ``,
+    config.tlsMode !== 'None' ? `[TLS] Key exchange: ${config.keyExchange} / ${config.namedGroup}` : ``,
+    config.tlsMode !== 'None' ? `[TLS] Forward secrecy: ${pfsLabel}` : ``,
     config.tlsMode !== 'None' ? `[TLS] Session established successfully` : ``,
     config.authentication === 'Enabled' ? `[AUTH] Authenticating with PLAIN mechanism` : `[AUTH] Skipping authentication (disabled)`,
     config.authentication === 'Enabled' ? `[AUTH] 235 Authentication successful` : ``,
@@ -122,34 +288,29 @@ function generateLogLines(runId: string, config: Record<string, string>) {
     `[SMTP] DATA`,
     `[SMTP] 354 End data with <CR><LF>.<CR><LF>`,
     `[SMTP] Sending message headers...`,
-    `[SMTP] Sending message body (${Math.floor(Math.random() * 500 + 200)} bytes)...`,
-    `[SMTP] Sending attachments via MIME multipart...`,
-    `[SMTP] 250 OK: queued as ${runId.toUpperCase()}${Math.floor(Math.random() * 9000 + 1000)}`,
+    `[SMTP] Sending message body...`,
+    `[SMTP] 250 OK: queued as ${runId.toUpperCase()}`,
     `[SMTP] QUIT`,
     `[SMTP] 221 Bye`,
     ``,
     `[8] Stopping packet capture`,
-    `    tcpdump: ${Math.floor(Math.random() * 200 + 80)} packets captured`,
-    `    ${Math.floor(Math.random() * 200 + 80)} packets received by filter`,
-    `    0 packets dropped by kernel`,
+    `    Writing PCAPNG with encrypted configuration manifest...`,
+    `    SecureMailScope custom block embedded (AES-256-GCM)`,
     ``,
-    `[9] Copying logs`,
-    `    mail-server.log: ${(Math.random() * 2 + 0.5).toFixed(1)}M`,
-    `    mail-client.log: ${(Math.random() * 2 + 0.5).toFixed(1)}M`,
+    `[9] Running analysis pipeline`,
+    `    Parsing PCAPNG blocks...`,
+    `    Decrypting configuration manifest...`,
+    `    Configuration hash verified ✓`,
+    `    Comparing configured vs observed values...`,
     ``,
-    `[10] Copying PCAP`,
-    `    ${runId}.pcap: ${Math.floor(Math.random() * 50 + 15)}K`,
+    `[10] Saving capture`,
+    `    ${runId}.pcapng: real PCAPNG with embedded config`,
     ``,
     `======================================`,
     ` Experiment completed`,
     ` Dataset: dataset/runs/${runId}`,
+    ` Capture format: PCAPNG (with SecureMailScope metadata)`,
     `======================================`,
-    `total ${(Math.random() * 5 + 2).toFixed(1)}M`,
-    `-rw-r--r-- 1 lab lab ${(Math.random() * 2 + 0.5).toFixed(1)}M  mail-server.log`,
-    `-rw-r--r-- 1 lab lab ${(Math.random() * 2 + 0.5).toFixed(1)}M  mail-client.log`,
-    `-rw-r--r-- 1 lab lab  ${Math.floor(Math.random() * 50 + 15)}K  ${runId}.pcap`,
-    `-rw-r--r-- 1 lab lab 2.8K  sa.txt`,
-    `-rw-r--r-- 1 lab lab 4.7K  tls-handshake.txt`,
   ].filter(Boolean)
 }
 
@@ -160,14 +321,28 @@ export default function LabPage() {
   const [configCopied, setConfigCopied] = useState(false)
   const [configCollapsed, setConfigCollapsed] = useState(false)
 
-  /* ─── form fields ─────────────────────────────────── */
+  /* ─── form fields — email ─────────────────────────── */
   const [server, setServer] = useState('smtp.lab.local')
-  const [protocol, setProtocol] = useState('SMTP')
+  const [protocol, setProtocol] = useState<EmailProtocol>('SMTP')
   const [port, setPort] = useState('587')
   const [tlsMode, setTlsMode] = useState('STARTTLS')
-  const [tlsVersion, setTlsVersion] = useState('TLS 1.3')
-  const [securityProfile, setSecurityProfile] = useState('Secure')
-  const [certificateProfile, setCertificateProfile] = useState('Valid')
+  const [starttlsRequired, setStarttlsRequired] = useState(true)
+
+  /* ─── form fields — TLS ────────────────────────────── */
+  const [tlsVersion, setTlsVersion] = useState<TlsVersion>('TLS1.3')
+  const [cipherSuite, setCipherSuite] = useState<CipherSuite>('TLS_AES_256_GCM_SHA384')
+  const [keyExchange, setKeyExchange] = useState<KeyExchangeMechanism>('ECDHE')
+  const [namedGroup, setNamedGroup] = useState<NamedGroup>('X25519')
+
+  /* ─── form fields — certificate ────────────────────── */
+  const [certificateProfile, setCertificateProfile] = useState('valid')
+  const [certKeyAlgorithm, setCertKeyAlgorithm] = useState<CertKeyAlgorithm>('RSA')
+  const [certKeyLength, setCertKeyLength] = useState('2048')
+  const [certSignatureAlgorithm, setCertSignatureAlgorithm] =
+    useState<SignatureAlgorithm>('SHA256withRSA')
+
+  /* ─── form fields — misc ────────────────────────────── */
+  const [testScenario, setTestScenario] = useState<TestScenario>('secure')
   const [authentication, setAuthentication] = useState('Enabled')
   const [recipient, setRecipient] = useState('reviewer@lab.local')
   const [subject, setSubject] = useState('Quarterly evidence review')
@@ -181,17 +356,22 @@ export default function LabPage() {
   const [generating, setGenerating] = useState(false)
   const [logLines, setLogLines] = useState<string[]>([])
   const [runId, setRunId] = useState('')
+  const [sessionId, setSessionId] = useState('')
   const [responseJson, setResponseJson] = useState<string | null>(null)
   const [logCollapsed, setLogCollapsed] = useState(false)
   const logBoxRef = useRef<HTMLPreElement>(null)
 
+  /* ─── derived values ────────────────────────────────── */
+  const forwardSecrecy = useMemo(
+    () => deriveForwardSecrecy(keyExchange, tlsVersion),
+    [keyExchange, tlsVersion],
+  )
+
+  const tlsDeprecated = isTlsDeprecated(tlsVersion)
+
   /* ─── helpers ──────────────────────────────────────── */
   const attachmentSize = useMemo(
-    () =>
-      Array.from(attachments ?? []).reduce(
-        (total, file) => total + file.size,
-        0,
-      ),
+    () => Array.from(attachments ?? []).reduce((total, file) => total + file.size, 0),
     [attachments],
   )
   const pcapCount = Math.max(1, Math.ceil(attachmentSize / (5 * 1024 * 1024)))
@@ -200,15 +380,45 @@ export default function LabPage() {
       ? `${Math.max(1, Math.round(bytes / 1024))} KB`
       : `${(bytes / (1024 * 1024)).toFixed(1)} MB`
 
+  /* ─── preset loader ─────────────────────────────────── */
+  function applyPreset(key: TestScenario) {
+    const preset = PRESETS[key]
+    setTestScenario(key)
+    setTlsVersion(preset.tlsVersion)
+    setCipherSuite(preset.cipherSuite)
+    setKeyExchange(preset.keyExchange)
+    setNamedGroup(preset.namedGroup)
+    setTlsMode(preset.tlsMode)
+    setStarttlsRequired(preset.starttlsRequired)
+    setCertificateProfile(preset.certificateProfile)
+    setCertKeyAlgorithm(preset.certKeyAlgorithm)
+    setCertKeyLength(preset.certKeyLength)
+    setCertSignatureAlgorithm(preset.certSignatureAlgorithm)
+  }
+
+  /* ─── TLS version change — update cipher ────────────── */
+  function handleTlsVersionChange(v: TlsVersion) {
+    setTlsVersion(v)
+    setCipherSuite(defaultCipher(v))
+  }
+
+  /* ─── protocol change — update default port ──────────── */
+  function handleProtocolChange(p: EmailProtocol) {
+    setProtocol(p)
+    const defaults: Record<EmailProtocol, string> = {
+      SMTP: '587',
+      IMAP: '993',
+      POP3: '995',
+    }
+    setPort(defaults[p])
+  }
+
   /* ─── copy JSON to clipboard ────────────────────────── */
-  const copyJson = useCallback(
-    (text: string) => {
-      navigator.clipboard.writeText(text)
-      setConfigCopied(true)
-      setTimeout(() => setConfigCopied(false), 2000)
-    },
-    [],
-  )
+  const copyJson = useCallback((text: string) => {
+    navigator.clipboard.writeText(text)
+    setConfigCopied(true)
+    setTimeout(() => setConfigCopied(false), 2000)
+  }, [])
 
   /* ─── save lab configuration ───────────────────────── */
   function createLab(event: FormEvent<HTMLFormElement>) {
@@ -220,18 +430,26 @@ export default function LabPage() {
         protocol,
         server,
         port: Number(port),
-        tls_mode: tlsMode,
-        tls_version: tlsVersion,
-        security_profile: securityProfile,
-        certificate_profile: certificateProfile,
+        tlsMode,
+        starttlsRequired,
+        tlsVersion,
+        cipherSuite,
+        keyExchange,
+        namedGroup,
+        forwardSecrecy,
+        certificateProfile,
+        certKeyAlgorithm,
+        certKeyLength,
+        certSignatureAlgorithm,
         authentication,
+        testScenario,
       },
       capture_policy: {
+        format: 'PCAPNG',
         capture_tls_handshakes: true,
         capture_message_parts: true,
-        capture_attachment_transfers: true,
-        capture_retransmissions: true,
-        group_under_single_capture: true,
+        embed_encrypted_config: true,
+        config_encryption: 'AES-256-GCM',
       },
     }
     setSavedConfigJson(JSON.stringify(configData, null, 2))
@@ -252,26 +470,27 @@ export default function LabPage() {
     setResponseJson(null)
     setLogCollapsed(false)
 
-    const configForLog: Record<string, string> = {
+    const configForLog = {
       protocol,
       server,
       port,
       tlsMode,
       tlsVersion,
+      cipherSuite,
+      keyExchange,
+      namedGroup,
       certificateProfile,
       authentication,
       recipient,
+      forwardSecrecy,
     }
     const allLines = generateLogLines(currentRunId, configForLog)
 
     // Stream logs line by line with realistic delay
     for (let i = 0; i < allLines.length; i++) {
       const line = allLines[i]
-      await new Promise((resolve) =>
-        setTimeout(resolve, Math.random() * 80 + 20),
-      )
+      await new Promise((resolve) => setTimeout(resolve, Math.random() * 80 + 20))
       setLogLines((prev) => [...prev, line])
-      // Auto-scroll
       requestAnimationFrame(() => {
         if (logBoxRef.current) {
           logBoxRef.current.scrollTop = logBoxRef.current.scrollHeight
@@ -292,8 +511,17 @@ export default function LabPage() {
           server,
           port,
           tlsMode,
+          starttls: tlsMode !== 'None',
+          starttlsRequired,
           tlsVersion,
+          cipherSuite,
+          keyExchange,
+          namedGroup,
           certificateProfile,
+          certKeyAlgorithm,
+          certKeyLength: Number(certKeyLength),
+          certSignatureAlgorithm,
+          testScenario,
           authentication,
           files: Array.from(attachments ?? []).map((file) => ({
             name: file.name,
@@ -304,25 +532,35 @@ export default function LabPage() {
 
       if (response.ok) {
         const session = await response.json()
+        setSessionId(session.id)
+        if (session.analysis) {
+          saveAnalysisSession(session.analysis)
+        }
+
 
         const fullResponse = {
           ok: true,
           run_id: currentRunId,
+          session_id: session.id,
+          capture_format: 'PCAPNG',
+          capture_file: session.files?.[0]?.originalName,
+          config_embedding: 'AES-256-GCM encrypted manifest in Custom Block',
           config: {
             protocol,
             server,
             port: Number(port),
             tls_mode: tlsMode,
             tls_version: tlsVersion,
+            cipher_suite: cipherSuite,
+            key_exchange: keyExchange,
+            named_group: namedGroup,
+            forward_secrecy: forwardSecrecy,
             certificate_profile: certificateProfile,
             authentication,
           },
-          session_id: session.id,
-          dataset_dir: `dataset/runs/${currentRunId}`,
-          pcap: `captures/${currentRunId}.pcap`,
-          download_url: `/api/lab-sessions/download/${session.id}`,
-          files_generated: session.files,
-          reconstruction: session.reconstruction,
+          analysis_available: Boolean(session.analysis),
+          security_score: session.analysis?.securityScore?.total,
+          download_url: `/api/lab-sessions/download?session=${session.id}`,
         }
         setResponseJson(JSON.stringify(fullResponse, null, 2))
         setSent(true)
@@ -333,92 +571,31 @@ export default function LabPage() {
         )
       }
     } catch {
-      setLogLines((prev) => [
-        ...prev,
-        '',
-        '[ERROR] Failed to connect to API endpoint',
-      ])
+      setLogLines((prev) => [...prev, '', '[ERROR] Failed to connect to API endpoint'])
     } finally {
       setGenerating(false)
     }
   }
 
-  /* ─── download dummy PCAP ──────────────────────────── */
-  function downloadPcap() {
-    // Build realistic PCAP-like content
-    const pcapHeader = [
-      `# SecureMailScope — Forensic PCAP Export`,
-      `# Run ID: ${runId}`,
-      `# Generated: ${new Date().toISOString()}`,
-      `# Protocol: ${protocol} | TLS: ${tlsMode} (${tlsVersion})`,
-      `# Server: ${server}:${port}`,
-      `# Certificate: ${certificateProfile} | Auth: ${authentication}`,
-      ``,
-      `# ──── Packet Summary ──────────────────────────────`,
-      `# Frame 1: 74 bytes on wire, TCP SYN`,
-      `#   Source: 172.30.0.2:${Math.floor(Math.random() * 50000 + 10000)}  →  Destination: 172.30.0.3:${port}`,
-      `#   Flags: 0x002 (SYN)  Seq=0  Win=65535`,
-      ``,
-      `# Frame 2: 74 bytes on wire, TCP SYN-ACK`,
-      `#   Source: 172.30.0.3:${port}  →  Destination: 172.30.0.2:${Math.floor(Math.random() * 50000 + 10000)}`,
-      `#   Flags: 0x012 (SYN, ACK)  Seq=0  Ack=1  Win=65535`,
-      ``,
-      `# Frame 3: 66 bytes on wire, TCP ACK`,
-      `#   Flags: 0x010 (ACK)  Seq=1  Ack=1  Win=65535`,
-      ``,
-      `# Frame 4: SMTP Banner`,
-      `#   220 mail-lab.local ESMTP Postfix`,
-      ``,
-      `# Frame 5: EHLO`,
-      `#   EHLO client.lab.local`,
-      ``,
-      `# Frame 6: EHLO Response`,
-      `#   250-mail-lab.local`,
-      `#   250-STARTTLS`,
-      `#   250-AUTH LOGIN PLAIN`,
-      `#   250 OK`,
-      ``,
-      tlsMode !== 'None' ? `# Frame 7: STARTTLS` : `# Frame 7: MAIL FROM`,
-      tlsMode !== 'None' ? `#   STARTTLS` : `#   MAIL FROM:<sender@lab.local>`,
-      ``,
-      tlsMode !== 'None' ? `# Frame 8: TLS Handshake — ClientHello` : ``,
-      tlsMode !== 'None' ? `#   ${tlsVersion} ClientHello` : ``,
-      tlsMode !== 'None'
-        ? `#   Cipher Suites: TLS_AES_256_GCM_SHA384, TLS_CHACHA20_POLY1305_SHA256`
-        : ``,
-      ``,
-      tlsMode !== 'None' ? `# Frame 9: TLS Handshake — ServerHello` : ``,
-      tlsMode !== 'None' ? `#   ${tlsVersion} ServerHello` : ``,
-      tlsMode !== 'None'
-        ? `#   Selected Cipher: TLS_AES_256_GCM_SHA384`
-        : ``,
-      ``,
-      `# ──── End of Summary ──────────────────────────────`,
-      ``,
-      `# Total packets captured: ${Math.floor(Math.random() * 200 + 80)}`,
-      `# Capture duration: ${(Math.random() * 5 + 1).toFixed(2)} seconds`,
-      `# File size: ${Math.floor(Math.random() * 50 + 15)} KB`,
-    ]
-      .filter(Boolean)
-      .join('\n')
-
-    const blob = new Blob([pcapHeader], { type: 'application/octet-stream' })
-    const url = URL.createObjectURL(blob)
+  /* ─── download real PCAPNG from server ──────────────── */
+  async function downloadPcapng() {
+    if (!sessionId) return
     const a = document.createElement('a')
-    a.href = url
-    a.download = `${runId}.pcap`
+    a.href = `/api/lab-sessions/download?session=${encodeURIComponent(sessionId)}`
+    a.download = `${runId}.pcapng`
     document.body.appendChild(a)
     a.click()
     document.body.removeChild(a)
-    URL.revokeObjectURL(url)
   }
+
+  const availableCiphers = tlsVersion === 'TLS1.3' ? CIPHERS_TLS13 : CIPHERS_TLS12
 
   return (
     <AppShell>
       <PageHeader
         eyebrow="Controlled environment"
         title="Email traffic lab"
-        description="Configure the lab, compose an email with attachments, then generate related PCAP captures for reconstruction."
+        description="Configure the lab, compose an email with attachments, then generate PCAPNG captures with encrypted configuration metadata for reconstruction."
         action={
           <StatusBadge tone={configured ? 'success' : 'neutral'}>
             {configured ? 'Configuration saved' : 'Needs configuration'}
@@ -442,83 +619,307 @@ export default function LabPage() {
           </div>
 
           <form onSubmit={createLab} className="mt-7 flex flex-col gap-5">
+
+            {/* ── Security Test Scenario Presets ────────────── */}
+            <div>
+              <div className="flex items-center gap-2 mb-3">
+                <Zap className="size-4 text-[#2d8d78]" />
+                <span className="text-sm font-semibold text-[#36516d]">Test scenario preset</span>
+              </div>
+              <div className="grid gap-2 sm:grid-cols-2">
+                {(Object.keys(PRESETS) as TestScenario[]).map((key) => (
+                  <button
+                    key={key}
+                    type="button"
+                    onClick={() => applyPreset(key)}
+                    className={`rounded-xl border px-3 py-2.5 text-left text-xs transition-all duration-200 ${
+                      testScenario === key
+                        ? 'border-[#2d8d78] bg-[#f0faf6] text-[#247c6b] font-semibold'
+                        : 'border-[#e5eaf1] text-[#607087] hover:border-[#b9d8d0] hover:bg-[#f7fbff]'
+                    }`}
+                  >
+                    <div className="font-semibold">{PRESETS[key].label}</div>
+                    <div className="text-[10px] opacity-75 mt-0.5">{PRESETS[key].description}</div>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <hr className="border-[#edf0f5]" />
+
+            {/* ── A. Email Protocol ─────────────────────────── */}
+            <div className="rounded-xl bg-[#f7f9fc] p-4">
+              <p className="mb-3 text-xs font-bold uppercase tracking-[0.14em] text-[#9aa6b5]">A · Email Protocol</p>
+              <div className="grid gap-4 sm:grid-cols-3">
+                <label className={labelClass}>
+                  Protocol
+                  <select
+                    value={protocol}
+                    onChange={(e) => handleProtocolChange(e.target.value as EmailProtocol)}
+                    className={inputClass}
+                  >
+                    <option value="SMTP">SMTP</option>
+                    <option value="IMAP">IMAP</option>
+                    <option value="POP3">POP3</option>
+                  </select>
+                </label>
+                <label className={labelClass}>
+                  Port
+                  <select
+                    value={port}
+                    onChange={(e) => setPort(e.target.value)}
+                    className={inputClass}
+                  >
+                    {protocol === 'SMTP' && (
+                      <>
+                        <option value="587">587 (SUBMISSION)</option>
+                        <option value="465">465 (SMTPS)</option>
+                        <option value="25">25 (SMTP)</option>
+                      </>
+                    )}
+                    {protocol === 'IMAP' && (
+                      <>
+                        <option value="993">993 (IMAPS)</option>
+                        <option value="143">143 (IMAP)</option>
+                      </>
+                    )}
+                    {protocol === 'POP3' && (
+                      <>
+                        <option value="995">995 (POP3S)</option>
+                        <option value="110">110 (POP3)</option>
+                      </>
+                    )}
+                  </select>
+                </label>
+                <label className={labelClass}>
+                  Mail server
+                  <input
+                    value={server}
+                    onChange={(e) => setServer(e.target.value)}
+                    className={inputClass}
+                  />
+                </label>
+              </div>
+            </div>
+
+            {/* ── B. STARTTLS ───────────────────────────────── */}
+            <div className="rounded-xl bg-[#f7f9fc] p-4">
+              <p className="mb-3 text-xs font-bold uppercase tracking-[0.14em] text-[#9aa6b5]">B · STARTTLS</p>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <label className={labelClass}>
+                  TLS mode
+                  <select
+                    value={tlsMode}
+                    onChange={(e) => setTlsMode(e.target.value)}
+                    className={inputClass}
+                  >
+                    <option value="STARTTLS">STARTTLS</option>
+                    <option value="Direct TLS">Direct TLS</option>
+                    <option value="None">None (plaintext)</option>
+                  </select>
+                </label>
+                {tlsMode === 'STARTTLS' && (
+                  <label className={labelClass}>
+                    STARTTLS policy
+                    <select
+                      value={starttlsRequired ? 'required' : 'optional'}
+                      onChange={(e) => setStarttlsRequired(e.target.value === 'required')}
+                      className={inputClass}
+                    >
+                      <option value="required">Required (must upgrade)</option>
+                      <option value="optional">Optional (not enforced)</option>
+                    </select>
+                  </label>
+                )}
+              </div>
+            </div>
+
+            {/* ── C. TLS Version ────────────────────────────── */}
+            <div className="rounded-xl bg-[#f7f9fc] p-4">
+              <p className="mb-3 text-xs font-bold uppercase tracking-[0.14em] text-[#9aa6b5]">C · TLS Version</p>
+              <div className="grid gap-3 sm:grid-cols-4">
+                {(['TLS1.0', 'TLS1.1', 'TLS1.2', 'TLS1.3'] as TlsVersion[]).map((v) => {
+                  const deprecated = isTlsDeprecated(v)
+                  return (
+                    <button
+                      key={v}
+                      type="button"
+                      onClick={() => handleTlsVersionChange(v)}
+                      className={`rounded-xl border px-3 py-3 text-xs text-left transition-all ${
+                        tlsVersion === v
+                          ? deprecated
+                            ? 'border-[#f87171] bg-[#fff5f5] text-[#b91c1c] font-semibold'
+                            : 'border-[#2d8d78] bg-[#f0faf6] text-[#247c6b] font-semibold'
+                          : 'border-[#e5eaf1] text-[#607087] hover:border-[#b9c9d9]'
+                      }`}
+                    >
+                      <div className="font-semibold">TLS {v.replace('TLS', '')}</div>
+                      <div className={`text-[10px] mt-0.5 ${deprecated ? 'text-[#f87171]' : 'text-[#9aa6b5]'}`}>
+                        {deprecated ? '⚠ Deprecated' : '✓ Modern'}
+                      </div>
+                    </button>
+                  )
+                })}
+              </div>
+              {tlsDeprecated && (
+                <div className="mt-3 flex items-start gap-2 rounded-xl bg-[#fff5f5] border border-[#f87171]/30 px-3 py-2.5">
+                  <AlertTriangle className="size-4 text-[#ef4444] mt-0.5 shrink-0" />
+                  <p className="text-xs text-[#b91c1c]">
+                    <strong>{tlsVersion.replace('TLS', 'TLS ')} is deprecated</strong> (RFC 8996). Allowed for security-testing purposes only.
+                  </p>
+                </div>
+              )}
+            </div>
+
+            {/* ── D. Cipher Suite ───────────────────────────── */}
+            {tlsMode !== 'None' && (
+              <div className="rounded-xl bg-[#f7f9fc] p-4">
+                <p className="mb-3 text-xs font-bold uppercase tracking-[0.14em] text-[#9aa6b5]">D · Cipher Suite</p>
+                <label className={labelClass}>
+                  Cipher suite ({tlsVersion === 'TLS1.3' ? 'TLS 1.3' : 'TLS 1.2'})
+                  <select
+                    value={cipherSuite}
+                    onChange={(e) => setCipherSuite(e.target.value as CipherSuite)}
+                    className={inputClass}
+                  >
+                    {availableCiphers.map((cs) => (
+                      <option key={cs} value={cs}>
+                        {cs}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              </div>
+            )}
+
+            {/* ── E + F. Key Exchange + PFS ─────────────────── */}
+            {tlsMode !== 'None' && tlsVersion !== 'TLS1.3' && (
+              <div className="rounded-xl bg-[#f7f9fc] p-4">
+                <p className="mb-3 text-xs font-bold uppercase tracking-[0.14em] text-[#9aa6b5]">E · Key Exchange & PFS</p>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <label className={labelClass}>
+                    Key exchange mechanism
+                    <select
+                      value={keyExchange}
+                      onChange={(e) => setKeyExchange(e.target.value as KeyExchangeMechanism)}
+                      className={inputClass}
+                    >
+                      <option value="ECDHE">ECDHE</option>
+                      <option value="DHE">DHE</option>
+                      <option value="RSA">RSA (no PFS)</option>
+                      <option value="X25519">X25519</option>
+                      <option value="X448">X448</option>
+                    </select>
+                  </label>
+                  <label className={labelClass}>
+                    Named group / curve
+                    <select
+                      value={namedGroup}
+                      onChange={(e) => setNamedGroup(e.target.value as NamedGroup)}
+                      className={inputClass}
+                    >
+                      <option value="X25519">X25519</option>
+                      <option value="X448">X448</option>
+                      <option value="secp256r1">secp256r1 (P-256)</option>
+                      <option value="secp384r1">secp384r1 (P-384)</option>
+                      <option value="secp521r1">secp521r1 (P-521)</option>
+                    </select>
+                  </label>
+                </div>
+                <div className={`mt-3 flex items-center gap-2 rounded-xl px-3 py-2.5 text-xs ${forwardSecrecy ? 'bg-[#f0faf6] text-[#247c6b]' : 'bg-[#fff5f5] text-[#b91c1c]'}`}>
+                  {forwardSecrecy ? <CheckCircle2 className="size-4" /> : <AlertTriangle className="size-4" />}
+                  <span>
+                    <strong>Perfect Forward Secrecy: {forwardSecrecy ? 'Enabled' : 'Disabled'}</strong>
+                    {' '}— derived from key exchange ({keyExchange})
+                  </span>
+                </div>
+              </div>
+            )}
+            {tlsVersion === 'TLS1.3' && (
+              <div className="flex items-center gap-2 rounded-xl bg-[#f0faf6] border border-[#cfe9df] px-3 py-2.5 text-xs text-[#247c6b]">
+                <CheckCircle2 className="size-4 shrink-0" />
+                <span><strong>TLS 1.3:</strong> Ephemeral key exchange (PFS) is inherent — always enabled.</span>
+              </div>
+            )}
+
+            {/* ── G. Certificate ────────────────────────────── */}
+            <div className="rounded-xl bg-[#f7f9fc] p-4">
+              <p className="mb-3 text-xs font-bold uppercase tracking-[0.14em] text-[#9aa6b5]">G · Certificate</p>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <label className={labelClass}>
+                  Certificate scenario
+                  <select
+                    value={certificateProfile}
+                    onChange={(e) => setCertificateProfile(e.target.value)}
+                    className={inputClass}
+                  >
+                    <option value="valid">✅ Valid certificate</option>
+                    <option value="expired">❌ Expired certificate</option>
+                    <option value="not_yet_valid">❌ Not yet valid</option>
+                    <option value="self_signed">⚠️ Self-signed</option>
+                    <option value="invalid_chain">❌ Invalid chain</option>
+                    <option value="weak_key">⚠️ Weak public key (RSA 1024)</option>
+                    <option value="weak_signature">⚠️ Weak signature (SHA1)</option>
+                  </select>
+                </label>
+                <label className={labelClass}>
+                  Public key algorithm
+                  <select
+                    value={certKeyAlgorithm}
+                    onChange={(e) => setCertKeyAlgorithm(e.target.value as CertKeyAlgorithm)}
+                    className={inputClass}
+                  >
+                    <option value="RSA">RSA</option>
+                    <option value="ECDSA">ECDSA</option>
+                    <option value="Ed25519">Ed25519</option>
+                  </select>
+                </label>
+                <label className={labelClass}>
+                  Key length / curve
+                  <select
+                    value={certKeyLength}
+                    onChange={(e) => setCertKeyLength(e.target.value)}
+                    className={inputClass}
+                  >
+                    {certKeyAlgorithm === 'RSA' ? (
+                      <>
+                        <option value="1024">RSA 1024 (⚠️ Weak)</option>
+                        <option value="2048">RSA 2048</option>
+                        <option value="3072">RSA 3072</option>
+                        <option value="4096">RSA 4096</option>
+                      </>
+                    ) : certKeyAlgorithm === 'ECDSA' ? (
+                      <>
+                        <option value="256">P-256 (secp256r1)</option>
+                        <option value="384">P-384 (secp384r1)</option>
+                        <option value="521">P-521 (secp521r1)</option>
+                      </>
+                    ) : (
+                      <option value="256">255 (Curve25519)</option>
+                    )}
+                  </select>
+                </label>
+                <label className={labelClass}>
+                  Signature algorithm
+                  <select
+                    value={certSignatureAlgorithm}
+                    onChange={(e) => setCertSignatureAlgorithm(e.target.value as SignatureAlgorithm)}
+                    className={inputClass}
+                  >
+                    <option value="SHA256withRSA">SHA256withRSA</option>
+                    <option value="SHA384withRSA">SHA384withRSA</option>
+                    <option value="SHA512withRSA">SHA512withRSA</option>
+                    <option value="SHA1withRSA">SHA1withRSA (⚠️ Weak)</option>
+                    <option value="SHA256withECDSA">SHA256withECDSA</option>
+                    <option value="SHA384withECDSA">SHA384withECDSA</option>
+                    <option value="Ed25519">Ed25519</option>
+                  </select>
+                </label>
+              </div>
+            </div>
+
+            {/* ── Authentication ────────────────────────────── */}
             <div className="grid gap-5 sm:grid-cols-2">
-              <label className={labelClass}>
-                Email protocol
-                <select
-                  value={protocol}
-                  onChange={(e) => setProtocol(e.target.value)}
-                  className={inputClass}
-                >
-                  <option>SMTP</option>
-                  <option>IMAP</option>
-                  <option>POP3</option>
-                </select>
-              </label>
-              <label className={labelClass}>
-                Mail server
-                <input
-                  value={server}
-                  onChange={(e) => setServer(e.target.value)}
-                  className={inputClass}
-                />
-              </label>
-              <label className={labelClass}>
-                Port
-                <input
-                  value={port}
-                  onChange={(e) => setPort(e.target.value)}
-                  inputMode="numeric"
-                  className={inputClass}
-                />
-              </label>
-              <label className={labelClass}>
-                TLS mode
-                <select
-                  value={tlsMode}
-                  onChange={(e) => setTlsMode(e.target.value)}
-                  className={inputClass}
-                >
-                  <option>STARTTLS</option>
-                  <option>Direct TLS</option>
-                  <option>None</option>
-                </select>
-              </label>
-              <label className={labelClass}>
-                TLS version
-                <select
-                  value={tlsVersion}
-                  onChange={(e) => setTlsVersion(e.target.value)}
-                  className={inputClass}
-                >
-                  <option>TLS 1.2</option>
-                  <option>TLS 1.3</option>
-                </select>
-              </label>
-              <label className={labelClass}>
-                Security profile
-                <select
-                  value={securityProfile}
-                  onChange={(e) => setSecurityProfile(e.target.value)}
-                  className={inputClass}
-                >
-                  <option>Secure</option>
-                  <option>Weak</option>
-                  <option>Custom</option>
-                </select>
-              </label>
-              <label className={labelClass}>
-                Certificate profile
-                <select
-                  value={certificateProfile}
-                  onChange={(e) => setCertificateProfile(e.target.value)}
-                  className={inputClass}
-                >
-                  <option>Valid</option>
-                  <option>Expired</option>
-                  <option>Self-signed</option>
-                </select>
-              </label>
               <label className={labelClass}>
                 Authentication
                 <select
@@ -538,8 +939,9 @@ export default function LabPage() {
                 Capture policy
               </div>
               <p className="mt-2 leading-6">
-                All message parts, attachment transfers, TLS handshakes, and
-                retransmissions are grouped under one capture.
+                Generates a real <strong>PCAPNG</strong> file with simulated SMTP/TLS traffic.
+                Configuration is encrypted (AES-256-GCM) and embedded in a Custom Block.
+                Label: <em>Simulated Testbed</em>.
               </p>
             </div>
 
@@ -614,20 +1016,18 @@ export default function LabPage() {
 
           {!configured ? (
             <div className="mt-7 rounded-xl border border-[#dce9f5] bg-[#f7fbff] p-4 text-sm leading-6 text-[#607087]">
-              <strong className="text-[#36516d]">
-                Step 1 · Configure first
-              </strong>
+              <strong className="text-[#36516d]">Step 1 · Configure first</strong>
               <br />
-              Save the email protocol, server, TLS, certificate, and
-              authentication settings to unlock the draft composer.
+              Save the email protocol, server, TLS, certificate, and authentication settings to
+              unlock the draft composer.
             </div>
           ) : (
             <form onSubmit={sendEmail} className="mt-7 flex flex-col gap-4">
               <div className="rounded-xl border border-[#cfe9df] bg-[#f0faf6] p-3 text-xs text-[#247c6b]">
                 <strong>Step 2 · Draft and capture</strong>
                 <br />
-                {protocol} via {server}:{port} · {tlsMode} · {tlsVersion} ·{' '}
-                {certificateProfile} certificate
+                {protocol} via {server}:{port} · {tlsMode} · TLS {tlsVersion.replace('TLS', '')} ·{' '}
+                {cipherSuite} · PFS: {forwardSecrecy ? 'Yes' : 'No'} · {certificateProfile} cert
               </div>
 
               <label className={labelClass}>
@@ -675,8 +1075,7 @@ export default function LabPage() {
               {attachments && (
                 <div className="rounded-xl bg-[#f7f9fc] p-3 text-xs text-[#607087]">
                   <strong className="text-[#36516d]">
-                    {attachments.length} file(s) selected ·{' '}
-                    {formatBytes(attachmentSize)}
+                    {attachments.length} file(s) selected · {formatBytes(attachmentSize)}
                   </strong>
                   <div className="mt-2 flex flex-col gap-1">
                     {Array.from(attachments).map((file) => (
@@ -686,7 +1085,7 @@ export default function LabPage() {
                     ))}
                   </div>
                   <p className="mt-2 text-[#247c6b]">
-                    Estimated capture output: {pcapCount} related PCAP file
+                    Estimated capture output: {pcapCount} PCAPNG file
                     {pcapCount === 1 ? '' : 's'} (up to 5 MB per capture).
                   </p>
                 </div>
@@ -713,9 +1112,7 @@ export default function LabPage() {
               <div className="flex items-center justify-between rounded-t-xl border border-b-0 border-[#1a3a2a] bg-gradient-to-r from-[#0f2818] to-[#0d1b2a] px-4 py-2.5">
                 <div className="flex items-center gap-2">
                   <Terminal className="size-4 text-[#4ade80]" />
-                  <span className="text-sm font-semibold text-[#a3f7bf]">
-                    Capture Logs
-                  </span>
+                  <span className="text-sm font-semibold text-[#a3f7bf]">Capture Logs</span>
                   {generating && (
                     <span className="flex items-center gap-1.5 text-xs text-[#4ade80]/70">
                       <span className="size-1.5 animate-pulse rounded-full bg-[#4ade80]" />
@@ -746,10 +1143,7 @@ export default function LabPage() {
                 <pre
                   ref={logBoxRef}
                   className="max-h-[400px] overflow-auto rounded-b-xl border border-[#1a3a2a] bg-[#0a0f14] p-4 font-mono text-[11px] leading-5 text-[#c8d6e5] selection:bg-[#2d8d78]/30"
-                  style={{
-                    scrollbarWidth: 'thin',
-                    scrollbarColor: '#1a3a2a #0a0f14',
-                  }}
+                  style={{ scrollbarWidth: 'thin', scrollbarColor: '#1a3a2a #0a0f14' }}
                 >
                   {logLines.map((line, i) => (
                     <div
@@ -758,33 +1152,22 @@ export default function LabPage() {
                         line.startsWith('===')
                           ? 'text-[#fbbf24] font-semibold'
                           : line.startsWith('[')
-                            ? line.includes('ERROR')
-                              ? 'text-[#f87171]'
-                              : line.match(/^\[\d+\]/)
-                                ? 'text-[#60a5fa] font-medium'
-                                : line.startsWith('[SMTP]')
-                                  ? 'text-[#a78bfa]'
-                                  : line.startsWith('[TLS]')
-                                    ? 'text-[#34d399]'
-                                    : line.startsWith('[AUTH]')
-                                      ? 'text-[#fbbf24]'
-                                      : line.startsWith('[IKE]') ||
-                                          line.startsWith('[ENC]') ||
-                                          line.startsWith('[NET]') ||
-                                          line.startsWith('[CFG]')
-                                        ? 'text-[#38bdf8]'
-                                        : 'text-[#c8d6e5]'
-                            : line.startsWith('#')
-                              ? 'text-[#6b7280]'
-                              : line.startsWith(' Container') ||
-                                  line.startsWith(' Network') ||
-                                  line.startsWith(' Image')
-                                ? 'text-[#94a3b8]'
-                                : line.startsWith('-rw')
-                                  ? 'text-[#a78bfa]'
-                                  : line.startsWith('total')
-                                    ? 'text-[#fbbf24]'
-                                    : 'text-[#c8d6e5]'
+                          ? line.includes('ERROR')
+                            ? 'text-[#f87171]'
+                            : line.match(/^\[\d+\]/)
+                            ? 'text-[#60a5fa] font-medium'
+                            : line.startsWith('[SMTP]')
+                            ? 'text-[#a78bfa]'
+                            : line.startsWith('[TLS]')
+                            ? 'text-[#34d399]'
+                            : line.startsWith('[AUTH]')
+                            ? 'text-[#fbbf24]'
+                            : 'text-[#c8d6e5]'
+                          : line.startsWith('#')
+                          ? 'text-[#6b7280]'
+                          : line.startsWith(' Container') || line.startsWith(' Network')
+                          ? 'text-[#94a3b8]'
+                          : 'text-[#c8d6e5]'
                       }`}
                     >
                       {line || '\u00A0'}
@@ -798,35 +1181,38 @@ export default function LabPage() {
             </div>
           )}
 
-          {/* ── Success + PCAP Download ──────────────────── */}
+          {/* ── Success + PCAPNG Download ──────────────────── */}
           {sent && (
             <div className="mt-5 animate-[fadeSlideIn_0.3s_ease-out]">
               <div className="rounded-xl border border-[#cfe9df] bg-[#f0faf6] p-4 text-sm text-[#247c6b]">
                 <div className="flex items-center gap-2 font-semibold">
                   <CheckCircle2 className="size-4" />
-                  Step 3 · Captures ready
+                  Step 3 · PCAPNG capture ready
                 </div>
                 <p className="mt-2 leading-6">
-                  Session <strong>{runId}</strong> generated {pcapCount} related
-                  PCAP file{pcapCount === 1 ? '' : 's'} for this email. The
-                  files stay grouped together while TCP streams are
-                  reconstructed.
+                  Session <strong>{runId}</strong> generated a real <strong>PCAPNG</strong> file
+                  with encrypted configuration metadata (AES-256-GCM) embedded in a Custom Block.
+                  The configuration is cryptographically bound to the capture.
+                </p>
+                <p className="mt-1 text-xs opacity-75">
+                  Label: Simulated Testbed — packet data represents realistic SMTP/TLS exchange
+                  derived from your configuration.
                 </p>
 
                 <div className="mt-3 flex flex-wrap gap-2">
                   <button
-                    onClick={downloadPcap}
+                    onClick={downloadPcapng}
                     className="inline-flex items-center gap-2 rounded-lg bg-[#173b64] px-3.5 py-2 text-xs font-semibold text-white transition-all hover:bg-[#214d7d] hover:shadow-lg active:scale-[0.98]"
                   >
                     <Download className="size-3.5" />
-                    Download {runId}.pcap
+                    Download {runId}.pcapng
                   </button>
                   <a
-                    href={`/analysis?session=${runId}`}
+                    href={`/analysis?session=${sessionId}`}
                     className="inline-flex items-center gap-1 rounded-lg border border-[#cfe9df] px-3.5 py-2 text-xs font-bold text-[#247c6b] transition-all hover:bg-[#e5f4ef]"
                   >
                     <FileText className="size-3" />
-                    Continue to Traffic
+                    Continue to Traffic Analysis
                   </a>
                 </div>
               </div>
@@ -835,9 +1221,7 @@ export default function LabPage() {
               {responseJson && (
                 <div className="mt-4">
                   <div className="flex items-center justify-between rounded-t-xl border border-b-0 border-[#d7e0ea] bg-gradient-to-r from-[#2d8d78] to-[#247c6b] px-4 py-2">
-                    <span className="text-xs font-semibold text-white">
-                      API Response (JSON)
-                    </span>
+                    <span className="text-xs font-semibold text-white">API Response (JSON)</span>
                     <button
                       onClick={() => copyJson(responseJson)}
                       className="rounded-lg p-1 text-white/70 transition-colors hover:bg-white/10 hover:text-white"
@@ -858,10 +1242,9 @@ export default function LabPage() {
 
       <div className="mt-6 flex items-center gap-2 text-xs text-[#8290a2]">
         <ShieldCheck className="size-4 text-[#2d8d78]" />
-        No external messages are sent. This is a controlled forensic lab
-        simulation.
+        No external messages are sent. This is a controlled forensic lab simulation (Simulated
+        Testbed). Generated captures are PCAPNG format with encrypted configuration metadata.
       </div>
-
     </AppShell>
   )
 }

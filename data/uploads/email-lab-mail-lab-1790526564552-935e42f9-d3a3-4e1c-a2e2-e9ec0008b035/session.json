@@ -1,0 +1,206 @@
+{
+  "id": "mail-lab-1790526564552-935e42f9-d3a3-4e1c-a2e2-e9ec0008b035",
+  "files": [
+    {
+      "originalName": "mail-lab-1790526564552-935e42f9-d3a3-4e1c-a2e2-e9ec0008b035.pcapng",
+      "storedName": "mail-lab-1790526564552-935e42f9-d3a3-4e1c-a2e2-e9ec0008b035.pcapng",
+      "size": 2000
+    }
+  ],
+  "folder": "data/uploads/email-lab-mail-lab-1790526564552-935e42f9-d3a3-4e1c-a2e2-e9ec0008b035",
+  "reconstruction": {
+    "status": "complete",
+    "method": "simulated-testbed-pcapng",
+    "sourceFiles": [
+      "mail-lab-1790526564552-935e42f9-d3a3-4e1c-a2e2-e9ec0008b035.pcapng"
+    ],
+    "sessionsReconstructed": 1,
+    "message": "SecureMailScope simulated testbed PCAPNG with encrypted configuration metadata."
+  },
+  "attachments": [],
+  "source": "email-lab",
+  "analysis": {
+    "schemaVersion": "1.0",
+    "analysisTimestamp": "2026-09-27T16:29:24.561Z",
+    "session": {
+      "id": "mail-lab-1790526564552-935e42f9-d3a3-4e1c-a2e2-e9ec0008b035",
+      "source": "email-lab",
+      "captureFile": "mail-lab-1790526564552-935e42f9-d3a3-4e1c-a2e2-e9ec0008b035.pcapng"
+    },
+    "capture": {
+      "filename": "mail-lab-1790526564552-935e42f9-d3a3-4e1c-a2e2-e9ec0008b035.pcapng",
+      "format": "PCAPNG",
+      "timestamp": "2026-09-27T16:29:24.561Z",
+      "packetCount": 6,
+      "durationSeconds": 1,
+      "sourceIp": "172.30.0.2",
+      "destinationIp": "172.30.0.3",
+      "sourcePort": 50000,
+      "destinationPort": 587,
+      "hasSecureMailScopeMetadata": false,
+      "metadataIntegrity": "missing"
+    },
+    "configured": null,
+    "observed": {
+      "protocol": {
+        "detected": "SMTP",
+        "port": 587,
+        "confidence": "medium"
+      },
+      "starttls": {
+        "advertised": false,
+        "negotiated": false,
+        "required": false,
+        "plaintextPhaseObserved": false,
+        "encryptedPhaseObserved": false
+      },
+      "tls": {
+        "version": "unknown",
+        "cipherSuite": "unknown",
+        "keyExchange": "unknown",
+        "namedGroup": "unknown",
+        "forwardSecrecy": false,
+        "handshakeComplete": false,
+        "clientHelloObserved": false,
+        "serverHelloObserved": false
+      },
+      "certificate": {
+        "present": false,
+        "commonName": "not_observable",
+        "issuer": "not_observable",
+        "validFrom": "not_observable",
+        "validUntil": "not_observable",
+        "expired": false,
+        "notYetValid": false,
+        "selfSigned": false,
+        "publicKeyAlgorithm": "not_observable",
+        "publicKeyLength": 0,
+        "signatureAlgorithm": "not_observable",
+        "chainValid": false
+      }
+    },
+    "configurationComparison": null,
+    "findings": [
+      {
+        "id": "NO-PFS-001",
+        "category": "PFS",
+        "severity": "MEDIUM",
+        "title": "No Perfect Forward Secrecy (PFS)",
+        "description": "The observed key exchange does not provide Perfect Forward Secrecy. If the server's private key is compromised in the future, all past session recordings can be decrypted.",
+        "evidence": {
+          "observed": "unknown"
+        },
+        "impact": "Past and future sessions become decryptable if the server private key is compromised.",
+        "recommendation": "Configure ECDHE or DHE key exchange. Prefer TLS 1.3 which mandates ephemeral key exchange.",
+        "source": "pcap-analysis",
+        "deduction": 12
+      },
+      {
+        "id": "STARTTLS-DISABLED-002",
+        "category": "STARTTLS",
+        "severity": "MEDIUM",
+        "title": "STARTTLS not offered",
+        "description": "The SMTP server does not advertise STARTTLS capability, allowing clients to connect without TLS encryption.",
+        "evidence": {
+          "observed": "STARTTLS not advertised"
+        },
+        "impact": "Unencrypted email transmission exposed to network interception.",
+        "recommendation": "Enable STARTTLS on the mail server. For higher security, require STARTTLS (smtpd_tls_security_level = encrypt).",
+        "source": "pcap-analysis",
+        "deduction": 6
+      }
+    ],
+    "anomalies": [],
+    "securityScore": {
+      "total": 60,
+      "grade": "C",
+      "level": "Fair",
+      "deductions": [
+        {
+          "reason": "Cipher suite not observable in capture",
+          "severity": "INFO",
+          "points": 5
+        },
+        {
+          "reason": "No Forward Secrecy — static key exchange in use",
+          "severity": "MEDIUM",
+          "points": 12
+        },
+        {
+          "reason": "No certificate observed in capture",
+          "severity": "HIGH",
+          "points": 15
+        },
+        {
+          "reason": "STARTTLS not offered — plaintext connections permitted",
+          "severity": "MEDIUM",
+          "points": 6
+        },
+        {
+          "reason": "No SecureMailScope configuration metadata available for comparison",
+          "severity": "INFO",
+          "points": 2
+        }
+      ],
+      "breakdown": {
+        "tlsScore": 20,
+        "cipherScore": 15,
+        "keyExchangeScore": 3,
+        "certificateScore": 10,
+        "starttlsScore": 4,
+        "configConsistencyScore": 8
+      }
+    },
+    "aiAssessment": {
+      "available": false,
+      "provider": "none",
+      "executiveSummary": "AI analysis skipped for this request.",
+      "riskNarrative": "",
+      "prioritizedFindings": [],
+      "recommendations": [],
+      "anomalyExplanations": []
+    },
+    "recommendations": [
+      "Configure ECDHE or DHE key exchange. Prefer TLS 1.3 which mandates ephemeral key exchange.",
+      "Enable STARTTLS on the mail server. For higher security, require STARTTLS (smtpd_tls_security_level = encrypt)."
+    ]
+  },
+  "labConfig": {
+    "schemaVersion": "1.0",
+    "sessionId": "mail-lab-1790526564552-935e42f9-d3a3-4e1c-a2e2-e9ec0008b035",
+    "email": {
+      "protocol": "IMAP",
+      "server": "smtp.lab.local",
+      "port": 993,
+      "starttls": true,
+      "starttlsMode": "enabled_required"
+    },
+    "tls": {
+      "version": "TLS1.3",
+      "cipherSuite": "TLS_AES_256_GCM_SHA384",
+      "keyExchange": "ECDHE",
+      "namedGroup": "X25519",
+      "forwardSecrecy": true
+    },
+    "certificate": {
+      "enabled": true,
+      "commonName": "mail.smtp.lab.local",
+      "issuer": "SecureMailScope Test CA",
+      "validFrom": "2025-09-27",
+      "validUntil": "2027-09-27",
+      "publicKeyAlgorithm": "RSA",
+      "publicKeyLength": 2048,
+      "signatureAlgorithm": "SHA256withRSA",
+      "chainValid": true,
+      "scenario": "valid"
+    },
+    "testScenario": "secure",
+    "metadata": {
+      "createdAt": "2026-09-27T16:29:24.552Z",
+      "generatorVersion": "1.0.0",
+      "source": "SecureMailScope Email Lab",
+      "recipient": "reviewer@lab.local",
+      "subject": "Quarterly evidence review"
+    }
+  }
+}

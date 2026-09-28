@@ -1,0 +1,36 @@
+{
+  "schemaVersion": "1.0",
+  "sessionId": "mail-lab-1790574543813-00132743-93d5-422c-b209-5ffd6270269b",
+  "email": {
+    "protocol": "SMTP",
+    "server": "mail.legacybank.internal",
+    "port": 587,
+    "starttls": false,
+    "starttlsMode": "disabled"
+  },
+  "tls": {
+    "version": "TLS1.0",
+    "cipherSuite": "TLS_RSA_WITH_3DES_EDE_CBC_SHA",
+    "keyExchange": "RSA",
+    "namedGroup": "None",
+    "forwardSecrecy": false
+  },
+  "certificate": {
+    "enabled": true,
+    "commonName": "mail.mail.legacybank.internal",
+    "issuer": "SecureMailScope Test CA",
+    "validFrom": "2025-09-28",
+    "validUntil": "2026-09-21",
+    "publicKeyAlgorithm": "RSA",
+    "publicKeyLength": 1024,
+    "signatureAlgorithm": "SHA256withRSA",
+    "chainValid": true,
+    "scenario": "expired"
+  },
+  "testScenario": "custom",
+  "metadata": {
+    "createdAt": "2026-09-28T05:49:03.813Z",
+    "generatorVersion": "1.0.0",
+    "source": "SecureMailScope Email Lab"
+  }
+}

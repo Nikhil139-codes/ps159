@@ -5,7 +5,7 @@ import { Bot, Loader2, Send } from 'lucide-react'
 
 const suggestions = ['What are the highest-risk findings?', 'Which sessions exposed authentication data?', 'What should we fix first?']
 
-export function ReportAssistant() {
+export function ReportAssistant({ sessionId }: { sessionId?: string }) {
   const [question, setQuestion] = useState('')
   const [answer, setAnswer] = useState('')
   const [loading, setLoading] = useState(false)
@@ -16,7 +16,11 @@ export function ReportAssistant() {
     if (!question.trim() || loading) return
     setLoading(true); setError(''); setAnswer('')
     try {
-      const response = await fetch('/api/report-assistant', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ question }) })
+      const response = await fetch('/api/report-assistant', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ question, sessionId }),
+      })
       const data = await response.json()
       if (!response.ok) throw new Error(data.error)
       setAnswer(data.answer)

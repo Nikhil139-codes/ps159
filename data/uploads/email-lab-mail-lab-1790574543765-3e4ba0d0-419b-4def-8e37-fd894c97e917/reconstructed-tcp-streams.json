@@ -1,0 +1,9 @@
+{
+  "status": "complete",
+  "method": "simulated-testbed-pcapng",
+  "sourceFiles": [
+    "mail-lab-1790574543765-3e4ba0d0-419b-4def-8e37-fd894c97e917.pcapng"
+  ],
+  "sessionsReconstructed": 1,
+  "message": "SecureMailScope simulated testbed PCAPNG with encrypted configuration metadata."
+}

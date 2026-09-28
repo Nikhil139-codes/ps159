@@ -1,0 +1,310 @@
+{
+  "id": "1790529466805-af79e7e6-4406-4d09-803d-743846c1451e",
+  "files": [
+    {
+      "originalName": "mail-lab-1790526564552-935e42f9-d3a3-4e1c-a2e2-e9ec0008b035.pcapng",
+      "storedName": "mail-lab-1790526564552-935e42f9-d3a3-4e1c-a2e2-e9ec0008b035.pcapng",
+      "size": 2000
+    }
+  ],
+  "folder": "data/uploads/capture-1790529466805-af79e7e6-4406-4d09-803d-743846c1451e",
+  "reconstruction": {
+    "status": "complete",
+    "method": "pcap-upload",
+    "sourceFiles": [
+      "mail-lab-1790526564552-935e42f9-d3a3-4e1c-a2e2-e9ec0008b035.pcapng"
+    ],
+    "sessionsReconstructed": 18,
+    "message": "All PCAP files were saved for analysis."
+  },
+  "source": "upload",
+  "analysis": {
+    "schemaVersion": "1.0",
+    "analysisTimestamp": "2026-09-27T17:17:46.813Z",
+    "session": {
+      "id": "1790529466805-af79e7e6-4406-4d09-803d-743846c1451e",
+      "source": "upload",
+      "captureFile": "mail-lab-1790526564552-935e42f9-d3a3-4e1c-a2e2-e9ec0008b035.pcapng"
+    },
+    "capture": {
+      "filename": "mail-lab-1790526564552-935e42f9-d3a3-4e1c-a2e2-e9ec0008b035.pcapng",
+      "format": "PCAPNG",
+      "timestamp": "2026-09-27T17:17:46.813Z",
+      "packetCount": 6,
+      "durationSeconds": 1,
+      "sourceIp": "172.30.0.2",
+      "destinationIp": "172.30.0.3",
+      "sourcePort": 50000,
+      "destinationPort": 993,
+      "hasSecureMailScopeMetadata": true,
+      "metadataIntegrity": "valid"
+    },
+    "configured": {
+      "schemaVersion": "1.0",
+      "sessionId": "mail-lab-1790526564552-935e42f9-d3a3-4e1c-a2e2-e9ec0008b035",
+      "email": {
+        "protocol": "IMAP",
+        "server": "smtp.lab.local",
+        "port": 993,
+        "starttls": true,
+        "starttlsMode": "enabled_required"
+      },
+      "tls": {
+        "version": "TLS1.3",
+        "cipherSuite": "TLS_AES_256_GCM_SHA384",
+        "keyExchange": "ECDHE",
+        "namedGroup": "X25519",
+        "forwardSecrecy": true
+      },
+      "certificate": {
+        "enabled": true,
+        "commonName": "mail.smtp.lab.local",
+        "issuer": "SecureMailScope Test CA",
+        "validFrom": "2025-09-27",
+        "validUntil": "2027-09-27",
+        "publicKeyAlgorithm": "RSA",
+        "publicKeyLength": 2048,
+        "signatureAlgorithm": "SHA256withRSA",
+        "chainValid": true,
+        "scenario": "valid"
+      },
+      "testScenario": "secure",
+      "metadata": {
+        "createdAt": "2026-09-27T16:29:24.552Z",
+        "generatorVersion": "1.0.0",
+        "source": "SecureMailScope Email Lab",
+        "recipient": "reviewer@lab.local",
+        "subject": "Quarterly evidence review"
+      }
+    },
+    "observed": {
+      "protocol": {
+        "detected": "IMAP",
+        "port": 993,
+        "confidence": "high"
+      },
+      "starttls": {
+        "advertised": false,
+        "negotiated": false,
+        "required": true,
+        "plaintextPhaseObserved": false,
+        "encryptedPhaseObserved": false
+      },
+      "tls": {
+        "version": "unknown",
+        "cipherSuite": "unknown",
+        "keyExchange": "unknown",
+        "namedGroup": "unknown",
+        "forwardSecrecy": false,
+        "handshakeComplete": false,
+        "clientHelloObserved": false,
+        "serverHelloObserved": false
+      },
+      "certificate": {
+        "present": false,
+        "commonName": "not_observable",
+        "issuer": "not_observable",
+        "validFrom": "not_observable",
+        "validUntil": "not_observable",
+        "expired": false,
+        "notYetValid": false,
+        "selfSigned": false,
+        "publicKeyAlgorithm": "not_observable",
+        "publicKeyLength": 0,
+        "signatureAlgorithm": "not_observable",
+        "chainValid": false
+      }
+    },
+    "configurationComparison": {
+      "tlsVersion": {
+        "configured": "TLS1.3",
+        "observed": "unknown",
+        "status": "mismatch"
+      },
+      "cipherSuite": {
+        "configured": "TLS_AES_256_GCM_SHA384",
+        "observed": "unknown",
+        "status": "mismatch"
+      },
+      "keyExchange": {
+        "configured": "ECDHE",
+        "observed": "unknown",
+        "status": "mismatch"
+      },
+      "namedGroup": {
+        "configured": "X25519",
+        "observed": "unknown",
+        "status": "mismatch"
+      },
+      "forwardSecrecy": {
+        "configured": "yes",
+        "observed": "no",
+        "status": "mismatch"
+      },
+      "starttls": {
+        "configured": "enabled",
+        "observed": "disabled",
+        "status": "mismatch"
+      },
+      "starttlsRequired": {
+        "configured": "required",
+        "observed": "required",
+        "status": "match"
+      },
+      "certExpired": {
+        "configured": "valid",
+        "observed": "valid",
+        "status": "match"
+      },
+      "certChainValid": {
+        "configured": "valid",
+        "observed": "invalid",
+        "status": "mismatch"
+      },
+      "certCommonName": {
+        "configured": "mail.smtp.lab.local",
+        "observed": "not_observable",
+        "status": "not_observable"
+      },
+      "publicKeyAlgorithm": {
+        "configured": "RSA",
+        "observed": "not_observable",
+        "status": "not_observable"
+      },
+      "signatureAlgorithm": {
+        "configured": "SHA256withRSA",
+        "observed": "not_observable",
+        "status": "not_observable"
+      },
+      "overallStatus": "configuration_mismatch",
+      "mismatches": [
+        "tlsVersion",
+        "cipherSuite",
+        "starttls",
+        "certChain"
+      ]
+    },
+    "findings": [
+      {
+        "id": "NO-PFS-001",
+        "category": "PFS",
+        "severity": "MEDIUM",
+        "title": "No Perfect Forward Secrecy (PFS)",
+        "description": "The observed key exchange does not provide Perfect Forward Secrecy. If the server's private key is compromised in the future, all past session recordings can be decrypted.",
+        "evidence": {
+          "observed": "unknown"
+        },
+        "impact": "Past and future sessions become decryptable if the server private key is compromised.",
+        "recommendation": "Configure ECDHE or DHE key exchange. Prefer TLS 1.3 which mandates ephemeral key exchange.",
+        "source": "pcap-analysis",
+        "deduction": 12
+      },
+      {
+        "id": "STARTTLS-NOT-ADVERTISED-002",
+        "category": "STARTTLS",
+        "severity": "HIGH",
+        "title": "STARTTLS configured but not advertised in capture",
+        "description": "The configuration specifies STARTTLS should be offered, but the observed SMTP EHLO response does not include the STARTTLS capability.",
+        "evidence": {
+          "configured": "STARTTLS enabled",
+          "observed": "STARTTLS not in EHLO response"
+        },
+        "impact": "Clients cannot initiate TLS upgrade — connections may remain unencrypted.",
+        "recommendation": "Verify Postfix/mail server STARTTLS configuration and TLS certificate setup.",
+        "source": "configuration-check",
+        "deduction": 10
+      },
+      {
+        "id": "CONFIG-MISMATCH-003",
+        "category": "Configuration",
+        "severity": "HIGH",
+        "title": "Configuration vs observed values mismatch",
+        "description": "4 field(s) differ between the configured Email Lab settings and the values observed in the capture: tlsVersion, cipherSuite, starttls, certChain.",
+        "evidence": {
+          "mismatches": [
+            "tlsVersion",
+            "cipherSuite",
+            "starttls",
+            "certChain"
+          ]
+        },
+        "impact": "The capture does not reflect the intended security configuration. Security controls may not be functioning as intended.",
+        "recommendation": "Review server configuration. Ensure all TLS and certificate settings are correctly applied.",
+        "source": "configuration-check",
+        "deduction": 12
+      }
+    ],
+    "anomalies": [
+      {
+        "anomaly": true,
+        "type": "TLS_DOWNGRADE",
+        "severity": "HIGH",
+        "evidence": "Configured: TLS1.3 | Observed: unknown",
+        "configured": "TLS1.3",
+        "observed": "unknown"
+      },
+      {
+        "anomaly": true,
+        "type": "CIPHER_DOWNGRADE",
+        "severity": "MEDIUM",
+        "evidence": "Configured: TLS_AES_256_GCM_SHA384 | Observed: unknown",
+        "configured": "TLS_AES_256_GCM_SHA384",
+        "observed": "unknown"
+      }
+    ],
+    "securityScore": {
+      "total": 48,
+      "grade": "D",
+      "level": "Poor",
+      "deductions": [
+        {
+          "reason": "Cipher suite not observable in capture",
+          "severity": "INFO",
+          "points": 5
+        },
+        {
+          "reason": "No Forward Secrecy — static key exchange in use",
+          "severity": "MEDIUM",
+          "points": 12
+        },
+        {
+          "reason": "No certificate observed in capture",
+          "severity": "HIGH",
+          "points": 15
+        },
+        {
+          "reason": "STARTTLS was configured but not advertised",
+          "severity": "HIGH",
+          "points": 10
+        },
+        {
+          "reason": "4 configuration mismatches detected between configured and observed values",
+          "severity": "HIGH",
+          "points": 10
+        }
+      ],
+      "breakdown": {
+        "tlsScore": 20,
+        "cipherScore": 15,
+        "keyExchangeScore": 3,
+        "certificateScore": 10,
+        "starttlsScore": 0,
+        "configConsistencyScore": 0
+      }
+    },
+    "aiAssessment": {
+      "available": false,
+      "provider": "none",
+      "executiveSummary": "AI analysis skipped for this request.",
+      "riskNarrative": "",
+      "prioritizedFindings": [],
+      "recommendations": [],
+      "anomalyExplanations": []
+    },
+    "recommendations": [
+      "Configure ECDHE or DHE key exchange. Prefer TLS 1.3 which mandates ephemeral key exchange.",
+      "Verify Postfix/mail server STARTTLS configuration and TLS certificate setup.",
+      "Review server configuration. Ensure all TLS and certificate settings are correctly applied."
+    ]
+  }
+}

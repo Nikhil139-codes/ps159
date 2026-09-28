@@ -1,0 +1,186 @@
+{
+  "schemaVersion": "1.0",
+  "analysisTimestamp": "2026-09-28T05:49:03.775Z",
+  "session": {
+    "id": "mail-lab-1790574543765-3e4ba0d0-419b-4def-8e37-fd894c97e917",
+    "source": "email-lab",
+    "captureFile": "mail-lab-1790574543765-3e4ba0d0-419b-4def-8e37-fd894c97e917.pcapng"
+  },
+  "capture": {
+    "filename": "mail-lab-1790574543765-3e4ba0d0-419b-4def-8e37-fd894c97e917.pcapng",
+    "format": "PCAPNG",
+    "timestamp": "2026-09-28T05:49:03.775Z",
+    "packetCount": 18,
+    "durationSeconds": 1,
+    "sourceIp": "172.30.0.2",
+    "destinationIp": "172.30.0.3",
+    "sourcePort": 50000,
+    "destinationPort": 587,
+    "hasSecureMailScopeMetadata": true,
+    "metadataIntegrity": "valid"
+  },
+  "configured": {
+    "schemaVersion": "1.0",
+    "sessionId": "mail-lab-1790574543765-3e4ba0d0-419b-4def-8e37-fd894c97e917",
+    "email": {
+      "protocol": "SMTP",
+      "server": "mail.securecorp.internal",
+      "port": 587,
+      "starttls": true,
+      "starttlsMode": "enabled_required"
+    },
+    "tls": {
+      "version": "TLS1.3",
+      "cipherSuite": "TLS_AES_256_GCM_SHA384",
+      "keyExchange": "ECDHE",
+      "namedGroup": "X25519",
+      "forwardSecrecy": true
+    },
+    "certificate": {
+      "enabled": true,
+      "commonName": "mail.mail.securecorp.internal",
+      "issuer": "SecureMailScope Test CA",
+      "validFrom": "2025-09-28",
+      "validUntil": "2027-09-28",
+      "publicKeyAlgorithm": "RSA",
+      "publicKeyLength": 2048,
+      "signatureAlgorithm": "SHA256withRSA",
+      "chainValid": true,
+      "scenario": "valid"
+    },
+    "testScenario": "custom",
+    "metadata": {
+      "createdAt": "2026-09-28T05:49:03.767Z",
+      "generatorVersion": "1.0.0",
+      "source": "SecureMailScope Email Lab"
+    }
+  },
+  "observed": {
+    "protocol": {
+      "detected": "SMTP",
+      "port": 587,
+      "confidence": "high"
+    },
+    "starttls": {
+      "advertised": true,
+      "negotiated": true,
+      "required": true,
+      "plaintextPhaseObserved": true,
+      "encryptedPhaseObserved": true
+    },
+    "tls": {
+      "version": "TLS1.3",
+      "cipherSuite": "TLS_AES_256_GCM_SHA384",
+      "keyExchange": "ECDHE",
+      "namedGroup": "X25519",
+      "forwardSecrecy": true,
+      "handshakeComplete": true,
+      "clientHelloObserved": true,
+      "serverHelloObserved": true
+    },
+    "certificate": {
+      "present": true,
+      "commonName": "mail.mail.securecorp.internal",
+      "issuer": "SecureMailScope Test CA",
+      "validFrom": "2025-09-28",
+      "validUntil": "2027-09-28",
+      "expired": false,
+      "notYetValid": false,
+      "selfSigned": false,
+      "publicKeyAlgorithm": "RSA",
+      "publicKeyLength": 2048,
+      "signatureAlgorithm": "SHA256withRSA",
+      "chainValid": true
+    }
+  },
+  "configurationComparison": {
+    "tlsVersion": {
+      "configured": "TLS1.3",
+      "observed": "TLS1.3",
+      "status": "match"
+    },
+    "cipherSuite": {
+      "configured": "TLS_AES_256_GCM_SHA384",
+      "observed": "TLS_AES_256_GCM_SHA384",
+      "status": "match"
+    },
+    "keyExchange": {
+      "configured": "ECDHE",
+      "observed": "ECDHE",
+      "status": "match"
+    },
+    "namedGroup": {
+      "configured": "X25519",
+      "observed": "X25519",
+      "status": "match"
+    },
+    "forwardSecrecy": {
+      "configured": "yes",
+      "observed": "yes",
+      "status": "match"
+    },
+    "starttls": {
+      "configured": "enabled",
+      "observed": "enabled",
+      "status": "match"
+    },
+    "starttlsRequired": {
+      "configured": "required",
+      "observed": "required",
+      "status": "match"
+    },
+    "certExpired": {
+      "configured": "valid",
+      "observed": "valid",
+      "status": "match"
+    },
+    "certChainValid": {
+      "configured": "valid",
+      "observed": "valid",
+      "status": "match"
+    },
+    "certCommonName": {
+      "configured": "mail.mail.securecorp.internal",
+      "observed": "mail.mail.securecorp.internal",
+      "status": "match"
+    },
+    "publicKeyAlgorithm": {
+      "configured": "RSA",
+      "observed": "RSA",
+      "status": "match"
+    },
+    "signatureAlgorithm": {
+      "configured": "SHA256withRSA",
+      "observed": "SHA256withRSA",
+      "status": "match"
+    },
+    "overallStatus": "consistent",
+    "mismatches": []
+  },
+  "findings": [],
+  "anomalies": [],
+  "securityScore": {
+    "total": 100,
+    "grade": "A",
+    "level": "Excellent",
+    "deductions": [],
+    "breakdown": {
+      "tlsScore": 20,
+      "cipherScore": 20,
+      "keyExchangeScore": 15,
+      "certificateScore": 25,
+      "starttlsScore": 10,
+      "configConsistencyScore": 10
+    }
+  },
+  "aiAssessment": {
+    "available": false,
+    "provider": "none",
+    "executiveSummary": "AI analysis skipped for this request.",
+    "riskNarrative": "",
+    "prioritizedFindings": [],
+    "recommendations": [],
+    "anomalyExplanations": []
+  },
+  "recommendations": []
+}

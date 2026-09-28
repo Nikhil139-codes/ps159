@@ -1,0 +1,9 @@
+{
+  "status": "complete",
+  "method": "pcap-upload",
+  "sourceFiles": [
+    "run_004.pcap"
+  ],
+  "sessionsReconstructed": 18,
+  "message": "All PCAP files were saved for analysis."
+}
