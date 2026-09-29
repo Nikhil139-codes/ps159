@@ -276,8 +276,27 @@ export async function GET(request: Request) {
       </div>
     `).join('')}
 
+    <!-- 11. Attack Simulation Assessment -->
+    <h2>11. Attack Simulation Assessment (Simulated Adversary Modeling)</h2>
+    <div style="background: #fff5f5; border: 1px solid #fecaca; border-radius: 8px; padding: 12px; margin-bottom: 16px; font-size: 12px; color: #991b1b;">
+      <strong>NOTICE (SIMULATION ONLY):</strong> Attack scenarios are simulated in an isolated model and do not represent actual exploitation or live intrusion.
+    </div>
+    ${report.attackSimulationAssessment && report.attackSimulationAssessment.scenarios.length > 0 ? report.attackSimulationAssessment.scenarios.map((sim) => `
+      <div class="finding-card" style="border-left: 3px solid #173b64;">
+        <div class="finding-title">
+          <span>${escapeHtml(sim.scenarioTitle)}</span>
+          <span class="badge badge-warning">SIMULATION</span>
+        </div>
+        <div class="finding-meta">Triggering Finding: <strong>${escapeHtml(sim.triggerFinding)}</strong> &bull; Command: <code>${escapeHtml(sim.command)}</code></div>
+        <div class="finding-desc">${escapeHtml(sim.simulatedOutcome)}</div>
+        <div class="finding-field"><span>Predicted Threat Flow:</span> <code>${escapeHtml(sim.attackPathSummary)}</code></div>
+        <div class="finding-field"><span>Root Cause:</span> ${escapeHtml(sim.rootCause)}</div>
+        <div class="finding-field"><span>Remediation Recommendation:</span> <strong>${escapeHtml(sim.remediation)}</strong></div>
+      </div>
+    `).join('') : '<p style="font-size: 13px; color: #15803d;">No critical attack simulation vectors applicable to current cryptographic controls.</p>'}
+
     <!-- 12. Anomalies -->
-    <h2>11. Anomaly Detection</h2>
+    <h2>12. Anomaly Detection</h2>
     ${report.anomalies.length === 0 ? '<p style="font-size: 13px; color: #15803d;">No anomalous behavior or protocol downgrade attempts detected.</p>' : report.anomalies.map((a) => `
       <div class="finding-card" style="border-left: 3px solid #b91c1c;">
         <div class="finding-title"><span>${escapeHtml(a.type)}</span><span class="badge badge-danger">${escapeHtml(a.severity)}</span></div>

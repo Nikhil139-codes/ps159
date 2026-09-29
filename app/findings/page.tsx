@@ -18,6 +18,7 @@ import {
   ShieldAlert,
   ShieldCheck,
   Sparkles,
+  Terminal,
   XCircle,
 } from 'lucide-react'
 import { AppShell, PageHeader, StatusBadge } from '@/components/app-shell'
@@ -684,6 +685,21 @@ function FindingsView() {
                           {finding.recommendation}
                         </p>
                       </div>
+                    </div>
+
+                    {/* Action buttons */}
+                    <div className="mt-4 flex flex-wrap items-center gap-2 pt-3 border-t border-[#edf0f5]">
+                      <Link
+                        href={`/attack-simulation?finding=${encodeURIComponent(finding.id)}${analysis?.session?.id ? `&session=${encodeURIComponent(analysis.session.id)}` : ''}`}
+                        className="inline-flex items-center gap-1.5 rounded-xl bg-[#173b64] px-3.5 py-2 text-xs font-semibold text-white hover:bg-[#122e4e] transition-colors"
+                      >
+                        <Terminal className="size-3.5" />
+                        Simulate Attack
+                      </Link>
+                      <span className="inline-flex items-center gap-1.5 rounded-xl border border-[#dce5ef] bg-[#f8fbfe] px-3.5 py-2 text-xs font-semibold text-[#607087]">
+                        <ShieldAlert className="size-3.5 text-[#8290a2]" />
+                        Severity: {finding.severity}
+                      </span>
                     </div>
                   </div>
                 </div>

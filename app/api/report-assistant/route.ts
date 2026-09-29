@@ -3,7 +3,12 @@ import path from 'node:path'
 import { NextResponse } from 'next/server'
 import type { CanonicalAnalysis } from '@/lib/types'
 import { getGroqApiKey } from '@/lib/env'
-
+import {
+  buildAnalysisRAGContext,
+  retrieveAnalysisContext,
+  generateDeterministicGroundedAnswer,
+  type AnalysisRAGContext,
+} from '@/lib/rag-knowledge-base'
 
 const uploadsRoot = path.join(process.cwd(), 'data', 'uploads')
 
@@ -27,55 +32,50 @@ async function getSessionAnalysis(sessionId: string): Promise<CanonicalAnalysis 
   }
 }
 
-function answerFromAnalysis(question: string, analysis: CanonicalAnalysis): string {
-  const q = question.toLowerCase()
-  const { findings, securityScore, observed, recommendations } = analysis
-
-  if (q.includes('highest-risk') || q.includes('high') || q.includes('critical') || q.includes('severe')) {
-    const highFindings = findings.filter((f) => f.severity === 'CRITICAL' || f.severity === 'HIGH')
-    if (highFindings.length > 0) {
-      return `The highest-risk findings identified in this capture are:\n` +
-        highFindings.map((f, i) => `${i + 1}. [${f.severity}] ${f.title}: ${f.description} (Evidence: ${typeof f.evidence === 'string' ? f.evidence : f.evidence?.observed || 'observed traffic'}, Impact: ${f.impact})`).join('\n\n')
-    }
-    return `No critical or high-severity findings were detected in this session. The current security score is ${securityScore.total}/100 (Grade: ${securityScore.grade}). Lowest-level findings: ${findings.map(f => f.title).join(', ') || 'None'}.`
-  }
-
-  if (q.includes('fix first') || q.includes('recommend') || q.includes('priority')) {
-    if (recommendations.length > 0) {
-      return `Top priority remediation actions recommended for this capture:\n` +
-        recommendations.slice(0, 4).map((r, i) => `${i + 1}. ${r}`).join('\n')
-    }
-    return `Security posture is in good standing. Maintain TLS 1.3 standards and monitor certificate expiration.`
-  }
-
-  if (q.includes('authentication') || q.includes('auth') || q.includes('plaintext') || q.includes('credential')) {
-    const authFinding = findings.find(f => f.id.includes('AUTH') || f.title.toLowerCase().includes('auth') || f.description.toLowerCase().includes('plaintext'))
-    if (authFinding) {
-      return `Authentication analysis: ${authFinding.title}. Evidence: ${typeof authFinding.evidence === 'string' ? authFinding.evidence : authFinding.evidence?.observed || 'Observed in network stream'}. Recommendation: ${authFinding.recommendation}`
-    }
-    if (observed.starttls.plaintextPhaseObserved) {
-      return `Plaintext SMTP commands (such as MAIL FROM / EHLO) were observed before TLS was negotiated. Recommend enforcing STARTTLS strictly.`
-    }
-    return `No unencrypted authentication credentials or plaintext auth data leaks were observed in this reconstructed traffic session.`
-  }
-
-  if (q.includes('certificate') || q.includes('cert') || q.includes('expire') || q.includes('ca')) {
-    const cert = observed.certificate
-    if (!cert.present) return `No TLS server certificate was observable in this capture stream.`
-    return `Certificate details for CN "${cert.commonName}": Issued by "${cert.issuer}". Valid from ${cert.validFrom} to ${cert.validUntil}. Status: ${cert.expired ? 'EXPIRED' : 'Active/Valid'}. Trust chain: ${cert.chainValid ? 'Trusted' : 'Untrusted / Self-signed'}. Algorithm: ${cert.publicKeyAlgorithm} (${cert.publicKeyLength} bits).`
-  }
-
-  if (q.includes('score') || q.includes('grade') || q.includes('posture')) {
-    return `Cryptographic security score is ${securityScore.total}/100, receiving Grade ${securityScore.grade} (${securityScore.level}). Main deductions: ${securityScore.deductions.map(d => `${d.reason} (-${d.points} pts)`).join('; ') || 'None'}.`
-  }
-
-  // General grounded summary
-  const summaryParts: string[] = [
-    `Session ${analysis.session.id}: Protocol ${observed.protocol.detected} (Port ${observed.protocol.port}), TLS version ${observed.tls.version}, cipher ${observed.tls.cipherSuite}, PFS ${observed.tls.forwardSecrecy ? 'active' : 'disabled'}.`,
-    `Security score: ${securityScore.total}/100 (Grade ${securityScore.grade}).`,
-    `${findings.length} findings recorded: ${findings.slice(0, 3).map(f => f.title).join('; ')}.`,
+/**
+ * Calls Groq chat completion with robust multi-model fallback.
+ */
+async function callGroqRAG(
+  apiKey: string,
+  systemPrompt: string,
+  userPrompt: string
+): Promise<string | null> {
+  const modelsToTry = [
+    'qwen/qwen3.8-27b',
+    'llama-3.3-70b-versatile',
+    'llama-3.1-8b-instant',
+    'openai/gpt-oss-120b',
   ]
-  return summaryParts.join(' ')
+
+  for (const model of modelsToTry) {
+    try {
+      const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model,
+          messages: [
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: userPrompt },
+          ],
+          temperature: 0.2,
+          max_tokens: 800,
+        }),
+      })
+
+      if (res.ok) {
+        const data = await res.json()
+        const text = data.choices?.[0]?.message?.content?.trim()
+        if (text) return text
+      }
+    } catch {
+      // Try next model
+    }
+  }
+  return null
 }
 
 export async function POST(request: Request) {
@@ -83,65 +83,108 @@ export async function POST(request: Request) {
     const body = await request.json()
     const question = typeof body.question === 'string' ? body.question.trim() : ''
     const sessionId = typeof body.sessionId === 'string' ? body.sessionId.trim() : ''
+    const clientAnalysis = body.analysis as CanonicalAnalysis | undefined
 
     if (!question || question.length > 1000) {
       return NextResponse.json({ error: 'Enter a question up to 1,000 characters.' }, { status: 400 })
     }
 
+    // Resolve analysis from disk or payload
     let analysis: CanonicalAnalysis | null = null
     if (sessionId) {
       analysis = await getSessionAnalysis(sessionId)
     }
+    if (!analysis && clientAnalysis && clientAnalysis.session) {
+      analysis = clientAnalysis
+    }
 
-    // If Groq API key is present, try Groq
+    if (!analysis) {
+      return NextResponse.json({
+        answer: `I cannot determine this from the analyzed capture because no active session or capture file has been loaded. Please reconstruct an email session in the Email Lab or upload a PCAP file to enable forensic queries.`,
+        sources: ['SecureMailScope Engine'],
+        mode: 'no-session',
+      })
+    }
+
+    // Step 1: Construct Canonical Structured Context (No Raw PCAP binary)
+    const ragContext: AnalysisRAGContext = buildAnalysisRAGContext(analysis)
+
+    // Step 2: Question Understanding & Relevant Context Retrieval
+    const retrieved = retrieveAnalysisContext(question, ragContext)
+
+    // Step 3: Check Groq Availability
     const groqApiKey = getGroqApiKey()
-    if (groqApiKey && analysis) {
 
+    if (groqApiKey) {
+      const systemPrompt = `You are SecureMailScope's Expert Cryptographic Forensic Assistant.
+Answer arbitrary security, cryptographic, PCAP, standards, and remediation questions strictly grounded in the provided analysis context and retrieved security standards documents.
 
-      try {
-        const groqPrompt = `You are a cryptographic forensic analyst. Answer the user question based STRICTLY on the analysis data below:\n\n${JSON.stringify({
-          capture: analysis.capture,
-          observed: analysis.observed,
-          score: analysis.securityScore,
-          findings: analysis.findings,
-          recommendations: analysis.recommendations,
-        }, null, 2)}\n\nQuestion: ${question}`
+CRITICAL RULES:
+1. NEVER hallucinate values or invent parameters not in the context.
+2. If information is unavailable in the analyzed capture, state: "I cannot determine this from the analyzed capture."
+3. NEVER assume or claim real network penetration occurred — this is forensic passive capture assessment.
+4. Format your answer using this structure when appropriate:
 
-        const groqRes = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${groqApiKey}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            model: 'llama3-8b-8192',
-            messages: [{ role: 'user', content: groqPrompt }],
-            temperature: 0.2,
-            max_tokens: 500,
-          }),
+Answer
+<Clear direct response to the question>
+
+Evidence from Current Analysis
+<Specific observed values, protocols, ports, ciphers, cert parameters, or score deductions>
+
+Security Impact
+<Technical risk, architectural flaw, or vulnerability>
+
+Applicable Standard
+<Specific standard citation e.g. RFC 8996 Section 1, NIST SP 800-52 Rev. 2 Section 3.1, NIST SP 800-57 Part 1 Rev. 5 Section 5.6.1>
+
+Recommendation
+<Clear prioritized remediation actions>`
+
+      const userPrompt = `USER QUESTION:
+${question}
+
+RETRIEVED STANDARDS KNOWLEDGE:
+${retrieved.relevantDocs.map((d) => `[${d.standard} - ${d.section}]: ${d.title}\n${d.content}`).join('\n\n')}
+
+RELEVANT CURRENT CAPTURE ANALYSIS DATA:
+- Capture: ${JSON.stringify(ragContext.capture)}
+- Observed Protocol & STARTTLS: ${JSON.stringify(ragContext.protocolAnalysis)}
+- Observed TLS: ${JSON.stringify(ragContext.tlsAnalysis)}
+- Observed Certificate: ${JSON.stringify(ragContext.certificateAnalysis)}
+- Security Score: Total ${ragContext.securityScore.total}/100, Grade ${ragContext.securityScore.grade}, Deductions: ${JSON.stringify(ragContext.securityScore.deductions)}
+- Relevant Findings: ${JSON.stringify(retrieved.relevantFindings)}
+- Anomalies: ${JSON.stringify(ragContext.anomalies)}
+- Configured vs Observed Comparison: ${JSON.stringify(ragContext.comparison)}
+- Top Recommendations: ${JSON.stringify(ragContext.recommendations)}`
+
+      const aiResponse = await callGroqRAG(groqApiKey, systemPrompt, userPrompt)
+
+      if (aiResponse) {
+        return NextResponse.json({
+          answer: aiResponse,
+          sources: retrieved.sources,
+          mode: 'rag-groq',
         })
-
-        if (groqRes.ok) {
-          const gData = await groqRes.json()
-          const ans = gData.choices?.[0]?.message?.content
-          if (ans) return NextResponse.json({ answer: ans })
-        }
-      } catch {
-        // Fall back to rule-based grounded engine
       }
     }
 
-    if (analysis) {
-      const groundedAnswer = answerFromAnalysis(question, analysis)
-      return NextResponse.json({ answer: groundedAnswer })
-    }
+    // Step 4: Fallback if Groq unavailable or failed
+    const fallback = generateDeterministicGroundedAnswer(question, ragContext, retrieved)
+    const formattedAnswer = groqApiKey
+      ? `AI explanation unavailable. Showing analysis-based response.\n\n${fallback.answer}`
+      : `AI explanation unavailable. Showing analysis-based response.\n\n${fallback.answer}`
 
-    // Generic fallback if no specific session analysis is loaded
     return NextResponse.json({
-      answer: `Analysis context for this query: Please ensure a capture session has been reconstructed in the Email Lab or Upload workspace. Findings and posture scores will be dynamically referenced to provide evidentiary answers.`,
+      answer: formattedAnswer,
+      sources: fallback.sources,
+      mode: 'deterministic',
     })
-  } catch {
-    return NextResponse.json({ error: 'The assistant is unavailable. Please try again.' }, { status: 500 })
+  } catch (err) {
+    console.error('Report assistant error:', err)
+    return NextResponse.json(
+      { error: 'The forensic assistant encountered an internal error. Please try again.' },
+      { status: 500 }
+    )
   }
 }
 

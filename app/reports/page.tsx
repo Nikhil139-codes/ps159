@@ -19,6 +19,7 @@ import {
   ShieldAlert,
   ShieldCheck,
   Sparkles,
+  Terminal,
 } from 'lucide-react'
 import { AppShell, PageHeader, StatusBadge } from '@/components/app-shell'
 import { ReportAssistant } from '@/components/report-assistant'
@@ -29,6 +30,7 @@ import {
   handlePageLifecycle,
 } from '@/lib/analysis-storage'
 import { evaluateSecurityRules } from '@/lib/security-rules'
+import { SIMULATION_SCENARIOS, buildAttackSimulation } from '@/lib/attack-simulation-engine'
 
 function gradeColor(g: string) {
   if (g === 'A') return 'text-[#247c6b] bg-[#edf8f4] border-[#b4ded4]'
@@ -517,9 +519,143 @@ function ReportsView() {
         </div>
       </section>
 
-      {/* ── 4. AI Interactive Report Assistant ────────────── */}
+      {/* ── 5. Attack Simulation Assessment ────────────────── */}
+      <section className="mt-8 rounded-2xl border border-[#dce5ef] bg-white p-6 shadow-sm">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 border-b border-[#edf0f5] pb-4">
+          <div>
+            <div className="flex items-center gap-2">
+              <Terminal className="size-5 text-[#173b64]" />
+              <h2 className="font-bold text-[#182230] text-lg">
+                5. Attack Simulation Assessment (Adversary Modeling)
+              </h2>
+            </div>
+            <p className="text-xs text-[#718096] mt-0.5">
+              Theoretical vulnerability projection based on detected weaknesses in this capture.
+            </p>
+          </div>
+          <span className="rounded-full bg-[#fdeaea] px-3 py-1 text-xs font-bold text-[#bb4e4e] inline-flex items-center gap-1.5 self-start sm:self-auto">
+            <span className="size-2 rounded-full bg-[#bb4e4e]" />
+            SIMULATION ONLY
+          </span>
+        </div>
+
+        <div className="mb-4 rounded-xl border border-[#fee2e2] bg-[#fffbfb] p-3.5 text-xs text-[#991b1b] flex items-center gap-2.5">
+          <AlertTriangle className="size-4 shrink-0 text-[#b91c1c]" />
+          <span>
+            <strong>Safety Mandate:</strong> Attack scenarios are simulated and do not represent actual exploitation or live intrusion.
+          </span>
+        </div>
+
+        {(() => {
+          const applicable = SIMULATION_SCENARIOS.filter((s) => s.isApplicable(analysis).applicable)
+          if (applicable.length === 0) {
+            return (
+              <p className="text-xs text-[#247c6b] py-2">
+                No applicable attack scenarios identified. Current cryptographic controls meet baseline requirements.
+              </p>
+            )
+          }
+
+          return (
+            <div className="space-y-4">
+              {applicable.slice(0, 3).map((scenario) => {
+                const sim = buildAttackSimulation(analysis, scenario.id)
+                return (
+                  <div
+                    key={scenario.id}
+                    className="rounded-xl border border-[#e5eaf1] bg-[#fbfcfe] p-4 text-xs space-y-3"
+                  >
+                    <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#edf0f5] pb-2">
+                      <div className="flex items-center gap-2">
+                        <span className="font-bold text-[#173b64] text-sm">
+                          {sim.scenarioTitle}
+                        </span>
+                        <StatusBadge
+                          tone={
+                            sim.triggerFinding.severity === 'CRITICAL' ||
+                            sim.triggerFinding.severity === 'HIGH'
+                              ? 'danger'
+                              : 'warning'
+                          }
+                        >
+                          {sim.triggerFinding.severity}
+                        </StatusBadge>
+                      </div>
+                      <Link
+                        href={`/attack-simulation?finding=${encodeURIComponent(sim.triggerFinding.id)}${analysis.session.id ? `&session=${encodeURIComponent(analysis.session.id)}` : ''}`}
+                        className="inline-flex items-center gap-1 text-[11px] font-bold text-[#173b64] hover:underline"
+                      >
+                        Launch Simulation Sandbox
+                        <ArrowRight className="size-3" />
+                      </Link>
+                    </div>
+
+                    <div className="grid gap-2 sm:grid-cols-2 text-xs">
+                      <div>
+                        <span className="text-[#8290a2] block font-semibold text-[10px] uppercase">
+                          Triggering Finding:
+                        </span>
+                        <span className="font-medium text-[#182230]">
+                          {sim.triggerFinding.title} ({sim.triggerFinding.id})
+                        </span>
+                      </div>
+                      <div>
+                        <span className="text-[#8290a2] block font-semibold text-[10px] uppercase">
+                          Simulation Command:
+                        </span>
+                        <code className="font-mono text-[#173b64] bg-[#edf2f7] px-1.5 py-0.5 rounded text-[11px]">
+                          {sim.commands[0]?.command}
+                        </code>
+                      </div>
+                    </div>
+
+                    <div className="rounded-lg bg-white p-3 border border-[#edf0f5]">
+                      <span className="text-[#8290a2] block font-semibold text-[10px] uppercase mb-1">
+                        Predicted Attacker Path Flow:
+                      </span>
+                      <div className="flex flex-wrap items-center gap-1.5 font-mono text-[11px] text-[#475569]">
+                        {sim.attackPath.map((node, nIdx) => (
+                          <span key={node.step} className="inline-flex items-center gap-1">
+                            <span className="bg-[#f0f4f8] px-1.5 py-0.5 rounded text-[#173b64] font-semibold">
+                              {node.step}. {node.title}
+                            </span>
+                            {nIdx < sim.attackPath.length - 1 && (
+                              <span className="text-[#94a3b8]">&rarr;</span>
+                            )}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="grid gap-2 sm:grid-cols-2 text-xs">
+                      <div>
+                        <span className="text-[#8290a2] block font-semibold text-[10px] uppercase">
+                          Root Cause:
+                        </span>
+                        <span className="text-[#475569]">
+                          {sim.rootCause.control} &bull; {sim.rootCause.failure}
+                        </span>
+                      </div>
+                      <div>
+                        <span className="text-[#8290a2] block font-semibold text-[10px] uppercase">
+                          Remediation Recommendation:
+                        </span>
+                        <span className="text-[#247c6b] font-medium">
+                          {sim.remediation.immediateFix}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          )
+        })()}
+      </section>
+
+      {/* ── 6. AI Interactive Report Assistant ────────────── */}
       <section className="mt-7">
-        <ReportAssistant sessionId={session} />
+        <ReportAssistant sessionId={analysis?.session?.id || sessionFromUrl || undefined} analysis={analysis} />
       </section>
     </AppShell>
   )

@@ -109,6 +109,21 @@ export interface CanonicalForensicReport {
   }
   recommendations: string[]
   references: { name: string; document: string; section: string; reference: string }[]
+  attackSimulationAssessment?: {
+    disclaimer: string
+    scenarios: Array<{
+      scenarioId: string
+      scenarioTitle: string
+      triggerFinding: string
+      severity: string
+      command: string
+      simulatedOutcome: string
+      impact: string
+      attackPathSummary: string
+      rootCause: string
+      remediation: string
+    }>
+  }
 }
 
 export type Session = {
@@ -274,6 +289,51 @@ export function buildCanonicalReport(
     },
     recommendations: analysis.recommendations,
     references: standardsReferences,
+    attackSimulationAssessment: {
+      disclaimer: 'Attack scenarios are simulated and do not represent actual exploitation.',
+      scenarios: analysis.findings.slice(0, 3).map((f) => {
+        const cat = f.category.toLowerCase()
+        const title = f.title.toLowerCase()
+        let scenarioTitle = 'Cryptographic Attack Simulation'
+        let command = 'simulate --scenario tls-downgrade'
+        let id = 'tls-downgrade'
+
+        if (cat.includes('starttls') || title.includes('starttls')) {
+          scenarioTitle = 'STARTTLS Downgrade / Strip Simulation'
+          command = 'simulate --scenario starttls-downgrade'
+          id = 'starttls-downgrade'
+        } else if (cat.includes('cipher') || title.includes('cipher') || title.includes('3des')) {
+          scenarioTitle = 'Weak Cipher Exploitation Simulation'
+          command = 'simulate --scenario weak-cipher'
+          id = 'weak-cipher'
+        } else if (title.includes('expired')) {
+          scenarioTitle = 'Expired Certificate Trust Simulation'
+          command = 'simulate --scenario expired-cert'
+          id = 'expired-cert'
+        } else if (cat.includes('cert')) {
+          scenarioTitle = 'Certificate Validation Failure Simulation'
+          command = 'simulate --scenario certificate-failure'
+          id = 'certificate-failure'
+        } else if (cat.includes('pfs') || title.includes('forward secrecy')) {
+          scenarioTitle = 'No-Forward-Secrecy Exposure Simulation'
+          command = 'simulate --scenario no-pfs'
+          id = 'no-pfs'
+        }
+
+        return {
+          scenarioId: id,
+          scenarioTitle,
+          triggerFinding: `[${f.severity}] ${f.title}`,
+          severity: f.severity,
+          command,
+          simulatedOutcome: `Simulated attack demonstration for ${scenarioTitle} completed in sandboxed training environment.`,
+          impact: f.impact,
+          attackPathSummary: `Initial Observation → Identify ${f.category} Weakness → Simulated Exploit → Simulated Impact → Projected Lateral Activity`,
+          rootCause: `Control: ${f.category} | Evidence: ${typeof f.evidence === 'string' ? f.evidence : JSON.stringify(f.evidence)}`,
+          remediation: f.recommendation,
+        }
+      }),
+    },
   }
 }
 

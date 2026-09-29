@@ -14,6 +14,7 @@ import {
   Menu,
   Settings,
   ShieldCheck,
+  Terminal,
   Upload,
   X,
 } from 'lucide-react'
@@ -25,6 +26,7 @@ const navigation = [
   { label: 'Upload PCAP', href: '/upload', icon: Upload },
   { label: 'Traffic', href: '/analysis', icon: Activity },
   { label: 'Security', href: '/findings', icon: ShieldCheck },
+  { label: 'Attack Simulation', href: '/attack-simulation', icon: Terminal },
   { label: 'Report center', href: '/reports', icon: Files },
 ]
 
